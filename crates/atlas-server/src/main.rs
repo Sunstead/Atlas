@@ -2,6 +2,7 @@
 //! sign-in routes and the web app build.
 
 mod api;
+mod apps;
 mod auth;
 mod config;
 mod error;
@@ -106,7 +107,9 @@ fn build_state(config: &Config) -> Result<AppState, String> {
     let index = atlas_index::Index::open(&config.index_dir)
         .map_err(|e| format!("search index in {}: {e}", config.index_dir.display()))?;
     let sources = Arc::new(config.sources.clone());
+    let apps = apps::load(config.apps_file.as_deref(), &config.sources).map_err(|e| format!("ATLAS_APPS_FILE: {e}"))?;
     Ok(AppState {
+        apps: Arc::new(apps),
         indexer: indexer::Indexer::new(Arc::new(index), db.clone(), sources.clone(), master_key.clone()),
         db,
         auth: Arc::new(Auth::new(config.auth.clone(), &config.public_url)),

@@ -18,8 +18,9 @@ Cosmos roadmap (`Cosmos/docs/ROADMAP.md`, section E). Atlas is the final name.
   sessions, connections with sealed credentials) is backed up.
 
 Milestones: M0 scaffold, M1 sign-in and connections, M2 OpenCloud file search
-from disk, M3 Immich (done); M4 OpenCloud API; M5 polish (OpenSearch,
-launcher, keyboard, mobile); M6 notes, after Solstice Sync exists.
+from disk, M3 Immich, M5 polish (OpenSearch, suggestions, launcher, keyboard,
+mobile) (done); M4 OpenCloud API (needs auth-app tokens on Jupiter); M6
+notes, after Solstice Sync exists.
 
 ## Commands
 
@@ -119,6 +120,14 @@ Dependency rules:
   once (each gets `FEDERATED_DEADLINE`, 2.5 s), reports each source's state,
   and merges ranked lists by Reciprocal Rank Fusion, since BM25 and CLIP
   scores can't be compared.
+- **Ways in** (`api/discovery.rs`): `/opensearch.xml` (public; linked from
+  `index.html`) makes Atlas a browser search engine; `/v1/suggest` returns
+  OpenSearch suggestions (empty, not 401, when signed out); `/v1/apps` is the
+  launcher, from `ATLAS_APPS_FILE` (TOML, `apps.rs`) or the configured
+  sources.
+- **Keyboard** (`lib/keyboard.ts`): `/` focuses search anywhere; on results,
+  arrows move the selection, Escape closes the preview, Ctrl/Cmd+Enter opens
+  the item in its app.
 - **Item ids in URLs** are base64url (`api/items.rs`). Blobs are served with
   `CSP: sandbox` (except PDFs) and `nosniff`, so a user's HTML or SVG never
   runs as Atlas.

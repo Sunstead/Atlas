@@ -4,6 +4,7 @@
 
 mod connections;
 pub mod csrf;
+mod discovery;
 pub mod items;
 mod search;
 
@@ -29,6 +30,8 @@ pub fn router(state: AppState) -> Router<AppState> {
         .route("/connections/{id}", patch(connections::update).delete(connections::remove))
         .route("/connections/{id}/sync", post(connections::sync))
         .route("/search", get(search::search))
+        .route("/suggest", get(discovery::suggest))
+        .route("/apps", get(discovery::apps))
         .route("/items/{conn}/{id}", get(items::item))
         .route("/items/{conn}/{id}/preview", get(items::preview))
         .route("/items/{conn}/{id}/blob", get(items::blob))
@@ -36,7 +39,10 @@ pub fn router(state: AppState) -> Router<AppState> {
         .fallback(|| async { AppError::not_found() })
         .layer(middleware::from_fn_with_state(state, csrf::guard));
 
-    Router::new().route("/healthz", get(healthz)).nest("/v1", v1)
+    Router::new()
+        .route("/healthz", get(healthz))
+        .route("/opensearch.xml", get(discovery::opensearch))
+        .nest("/v1", v1)
 }
 
 async fn healthz() -> &'static str {

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@suns
 import { Input } from '@sunstead/ui/components/input';
 import { useConnectionMutations, useConnections, useSourceKinds } from '@/lib/connections';
 import { formatWhen } from '@/lib/format';
+import { ThemeSelect } from '@/components/theme-select';
 import type { ConnectionInfo } from '@/generated/ConnectionInfo';
 import type { SourceKindInfo } from '@/generated/SourceKindInfo';
 
@@ -25,6 +26,19 @@ export function ConnectionsPage() {
       {kinds.data?.map((kind) => (
         <KindCard key={kind.kind} kind={kind} connection={connections.data?.find((c) => c.kind === kind.kind)} />
       ))}
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+          <CardDescription>Saved in this browser.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ThemeSelect />
+        </CardContent>
+      </Card>
+      <p className='text-xs text-muted-foreground'>
+        Tip: press / anywhere to search. In Firefox, open the address bar's search menu and add Atlas to search it straight from
+        the address bar.
+      </p>
     </div>
   );
 }

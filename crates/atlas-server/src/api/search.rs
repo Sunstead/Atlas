@@ -363,6 +363,10 @@ mod tests {
         let (status, _, _) = w.call("GET", &format!("/v1/items/{conn}/{escape}/blob"), None).await;
         assert_eq!(status, StatusCode::NOT_FOUND);
 
+        // Suggestions match titles as they're typed.
+        let (_, _, body) = w.call("GET", "/v1/suggest?q=pla", None).await;
+        assert_eq!(String::from_utf8(body).unwrap(), r#"["pla",["plan.md"]]"#);
+
         // Sync status shows on the connection.
         let list = w.json("/v1/connections").await;
         assert_eq!(list[0]["sync"]["items"], 3);

@@ -1,14 +1,23 @@
-import { Link, useRouterState } from '@tanstack/react-router';
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
 import { Compass } from 'lucide-react';
 import { SearchBox } from '@/components/search-box';
 import { ThemeSelect } from '@/components/theme-select';
 import { UserMenu } from '@/components/user-menu';
+import { focusSearch, isTyping, useKeydown } from '@/lib/keyboard';
 
 /** The shell: a header with the search field everywhere but home, then the page. */
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useRouterState({ select: (s) => s.location });
   const onHome = location.pathname === '/';
   const q = location.pathname === '/search' ? (location.search as { q?: string }).q ?? '' : '';
+  const navigate = useNavigate();
+
+  // "/" jumps to search from anywhere, as on most sites.
+  useKeydown((e) => {
+    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey || isTyping(e.target)) return;
+    e.preventDefault();
+    if (!focusSearch()) void navigate({ to: '/' });
+  });
 
   return (
     <div className='flex min-h-dvh flex-col'>
@@ -18,7 +27,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <span>Atlas</span>
         </Link>
         <div className='mx-auto w-full max-w-2xl'>{!onHome && <SearchBox key={q} initial={q} />}</div>
-        <ThemeSelect />
+        <div className='hidden sm:block'>
+          <ThemeSelect />
+        </div>
         <UserMenu />
       </header>
       <main className='flex flex-1 flex-col'>{children}</main>

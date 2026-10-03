@@ -29,6 +29,7 @@ thiserror.workspace = true
 tracing.workspace = true
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 url = "2"
+toml = "1"
 # Debug builds read a local `.env` (see .env.example); release builds never do.
 dotenvy = "0.15"
 

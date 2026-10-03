@@ -26,6 +26,8 @@ pub struct Config {
     /// `ATLAS_MASTER_KEY[_FILE]`: base64 of 32 bytes, sealing credentials.
     pub master_key: Option<String>,
     pub sources: SourcesConfig,
+    /// `ATLAS_APPS_FILE`: the launcher's apps (TOML). Unset: the sources'.
+    pub apps_file: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone)]
@@ -191,6 +193,7 @@ impl Config {
             auth,
             master_key: env.secret("ATLAS_MASTER_KEY")?,
             sources,
+            apps_file: env.get("ATLAS_APPS_FILE").map(PathBuf::from),
         })
     }
 }

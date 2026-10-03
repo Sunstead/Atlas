@@ -17,6 +17,8 @@ pub struct AppState {
     pub sources: Arc<SourcesConfig>,
     pub public_url: Url,
     pub indexer: Arc<Indexer>,
+    /// The launcher's apps.
+    pub apps: Arc<Vec<atlas_common::AppLink>>,
 }
 
 #[cfg(test)]
@@ -38,6 +40,7 @@ pub(crate) mod tests {
         let index = Arc::new(atlas_index::Index::open(&dir).unwrap());
         let master_key = Some(Arc::new(MasterKey::from_bytes(&[7; 32]).unwrap()));
         AppState {
+            apps: Arc::new(Vec::new()),
             indexer: Indexer::new(index, db.clone(), sources.clone(), master_key.clone()),
             db,
             auth: Arc::new(Auth::new(mode, &public_url)),

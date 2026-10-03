@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { Highlighted } from '@/components/highlighted';
 import { ItemIcon } from '@/components/item-icon';
 import { ItemPreview } from '@/components/item-preview';
 import { formatWhen } from '@/lib/format';
+import { isTyping, useKeydown } from '@/lib/keyboard';
 import { blobUrl, parsePreviewParam, previewParam, useSearchResults } from '@/lib/items';
 import { Film, Images } from 'lucide-react';
 import { cn } from '@sunstead/ui/utils';
@@ -22,6 +24,29 @@ export function SearchPage() {
 
   const select = (hit: SearchHit | null) =>
     navigate({ search: (s) => ({ ...s, preview: hit ? previewParam(hit.item) : undefined }), replace: true });
+
+  // Keyboard: arrows move through results (from the search field too),
+  // Escape closes the preview, Ctrl or Cmd+Enter opens the item in its app.
+  const split = splitHits(results.data?.hits ?? []);
+  const visible = [...split.media, ...split.rest];
+  const at = selected ? visible.findIndex((h) => h.item.connection === selected.connection && h.item.id === selected.id) : -1;
+  useKeydown((e) => {
+    const inSearch = e.target instanceof HTMLInputElement && e.target.name === 'q';
+    if (isTyping(e.target) && !inSearch) return;
+    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && visible.length > 0) {
+      e.preventDefault();
+      const next = e.key === 'ArrowDown' ? Math.min(at + 1, visible.length - 1) : Math.max(at - 1, 0);
+      select(visible[next]);
+    } else if (e.key === 'Escape' && selected && !inSearch) {
+      select(null);
+    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && at >= 0 && visible[at].url) {
+      e.preventDefault();
+      window.open(visible[at].url!, '_blank', 'noreferrer');
+    }
+  });
+  useEffect(() => {
+    document.querySelector('[data-result][aria-current="true"]')?.scrollIntoView({ block: 'nearest' });
+  }, [params.preview]);
 
   return (
     <div className='flex min-h-0 flex-1'>
@@ -78,8 +103,7 @@ function Results({
   const isActive = (hit: SearchHit) => selected?.connection === hit.item.connection && selected.id === hit.item.id;
   // Photos, videos and albums with a picture show as a strip of thumbnails;
   // everything else as a list.
-  const media = data.hits.filter((h) => h.thumbnail && MEDIA.includes(h.kind));
-  const rest = data.hits.filter((h) => !media.includes(h));
+  const { media, rest } = splitHits(data.hits);
   return (
     <div className={cn('flex flex-col gap-1 transition-opacity', loading && 'opacity-60')}>
       {trouble.map((s) => (
@@ -97,6 +121,7 @@ function Results({
               <li key={`${hit.item.connection}:${hit.item.id}`}>
                 <button
                   type='button'
+                  data-result
                   onClick={() => onSelect(hit)}
                   aria-current={active || undefined}
                   className={cn(
@@ -128,6 +153,12 @@ function Results({
 
 const MEDIA = ['photo', 'video', 'album'];
 
+/** Media with a picture go in the strip; the rest in the list. Keyboard order follows. */
+function splitHits(hits: SearchHit[]) {
+  const media = hits.filter((h) => h.thumbnail && MEDIA.includes(h.kind));
+  return { media, rest: hits.filter((h) => !media.includes(h)) };
+}
+
 function MediaStrip({
   hits,
   isActive,
@@ -144,6 +175,7 @@ function MediaStrip({
           <li key={`${hit.item.connection}:${hit.item.id}`} className='shrink-0 snap-start'>
             <button
               type='button'
+              data-result
               onClick={() => onSelect(hit)}
               aria-current={isActive(hit) || undefined}
               title={[hit.title, hit.path].filter(Boolean).join(' · ')}
