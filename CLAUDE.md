@@ -108,8 +108,10 @@ Dependency rules:
   back it up.
 - **OpenCloud** (`atlas-source-opencloud`) reads the user's PosixFS space
   read-only. Ids are root-relative paths; `atlas_fs::resolve` refuses `..`,
-  hidden segments and symlinks out of the root. Links go to the containing
-  folder until the API layer (M4) adds file-id links.
+  hidden segments and symlinks out of the root. Links go straight to the file
+  (`/f/<storage>$<space>!<file>`), built from the `user.oc.space.id` /
+  `user.oc.id` attributes PosixFS keeps on disk plus
+  `ATLAS_OPENCLOUD_STORAGE_ID`; without those, to the containing folder.
 - **Immich** (`atlas-source-immich`) is federated: each search goes to
   Immich's smart search and file name search with the user's own API key
   (needs `asset.read`, `asset.view`, `album.read`; `asset.download` for

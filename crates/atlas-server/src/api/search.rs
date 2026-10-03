@@ -283,7 +283,7 @@ mod tests {
 
         let urls = ServiceUrls { api: Url::parse("http://opencloud:9200").unwrap(), public: Url::parse("https://oc.example").unwrap() };
         let immich = immich.map(|u| ServiceUrls { api: Url::parse(u).unwrap(), public: Url::parse("https://immich.example").unwrap() });
-        let sources = SourcesConfig { immich, opencloud: Some(OpenCloudConfig { urls, users_dir: users.clone() }) };
+        let sources = SourcesConfig { immich, opencloud: Some(OpenCloudConfig { urls, users_dir: users.clone(), storage_id: None }) };
         let state = state(AuthMode::Dev { username: "pwb".into() }, sources);
         state.indexer.start();
         let app = crate::app(state.clone(), None);

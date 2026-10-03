@@ -79,6 +79,9 @@ pub struct OpenCloudConfig {
     /// `ATLAS_OPENCLOUD_USERS_DIR`: the PosixFS personal spaces, mounted
     /// read-only (`/data/files/users`). Each user's root is `<dir>/<username>`.
     pub users_dir: PathBuf,
+    /// `ATLAS_OPENCLOUD_STORAGE_ID`: the first id in any OpenCloud permalink
+    /// (`/f/<this>$...`). With it, links go straight to files.
+    pub storage_id: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -180,6 +183,7 @@ impl Config {
                         name: "ATLAS_OPENCLOUD_USERS_DIR",
                         when: "with ATLAS_OPENCLOUD_URL",
                     })?,
+                    storage_id: env.get("ATLAS_OPENCLOUD_STORAGE_ID"),
                 }),
             },
         };

@@ -15,3 +15,6 @@ url = "2"
 [dev-dependencies]
 tempfile = "3"
 tokio = { version = "1", features = ["rt", "macros"] }
+
+[target.'cfg(unix)'.dev-dependencies]
+xattr = "1"

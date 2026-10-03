@@ -163,7 +163,7 @@ mod tests {
         let urls = |a: &str| ServiceUrls { api: Url::parse(a).unwrap(), public: Url::parse(a).unwrap() };
         SourcesConfig {
             immich: Some(urls("http://127.0.0.1:9")),
-            opencloud: Some(OpenCloudConfig { urls: urls("http://opencloud:9200"), users_dir: PathBuf::from("/data/files/users") }),
+            opencloud: Some(OpenCloudConfig { urls: urls("http://opencloud:9200"), users_dir: PathBuf::from("/data/files/users"), storage_id: None }),
         }
     }
 

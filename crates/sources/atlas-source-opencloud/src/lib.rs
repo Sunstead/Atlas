@@ -7,6 +7,13 @@
 //! Item ids are paths relative to the user's root, `/` separated. They change
 //! when a file is renamed or moved, which a sync sees as a delete and an add.
 //!
+//! Links go straight to the file, like OpenCloud's own permalinks
+//! (`/f/<storage>$<space>!<file>`): PosixFS keeps each file's id in its
+//! `user.oc.id` attribute and the space's in the root's `user.oc.space.id`,
+//! so no API call is needed. The storage id is the same for every file on a
+//! server (`ATLAS_OPENCLOUD_STORAGE_ID`, from any permalink). Without it, or
+//! without the attributes, links go to the containing folder.
+//!
 //! The sync runs on a blocking thread (the server's indexer uses
 //! `spawn_blocking`), so walking and reading files here is fine.
 
@@ -28,12 +35,28 @@ pub struct OpenCloudSource {
     root: PathBuf,
     username: String,
     public_url: String,
+    /// `<storage id>$<space id>`, when both are known: the prefix of every
+    /// permalink in this space.
+    space_ref: Option<String>,
+}
+
+/// OpenCloud's ids are UUIDs; anything else isn't put in a link.
+fn is_uuid(s: &str) -> bool {
+    s.len() == 36
+        && s.char_indices().all(|(i, c)| if matches!(i, 8 | 13 | 18 | 23) { c == '-' } else { c.is_ascii_hexdigit() })
+}
+
+/// An OpenCloud permalink: `/f/<storage>$<space>!<file>`, with `!` encoded
+/// as OpenCloud does.
+fn permalink(public_url: &str, space_ref: &str, file_id: &str) -> String {
+    format!("{public_url}/f/{space_ref}%21{file_id}")
 }
 
 impl OpenCloudSource {
     /// `root` is the user's space, pinned when they connected; it must sit
     /// inside `users_dir`, even after resolving symlinks.
-    pub fn new(users_dir: &Path, root: &Path, public_url: &str) -> Result<Self> {
+    /// `storage_id` is OpenCloud's storage provider id, for file links.
+    pub fn new(users_dir: &Path, root: &Path, public_url: &str, storage_id: Option<&str>) -> Result<Self> {
         let not_there = || {
             SourceError::Config(
                 "Your OpenCloud folder isn't on the server yet. Sign in to OpenCloud once, then sync again.".into(),
@@ -48,7 +71,11 @@ impl OpenCloudSource {
             return Err(not_there());
         }
         let username = root.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_owned();
-        Ok(Self { root: root.to_path_buf(), username, public_url: public_url.trim_end_matches('/').to_owned() })
+        let space_ref = match (storage_id.filter(|s| is_uuid(s)), atlas_fs::xattr(root, "user.oc.space.id")) {
+            (Some(storage), Some(space)) if is_uuid(&space) => Some(format!("{storage}${space}")),
+            _ => None,
+        };
+        Ok(Self { root: root.to_path_buf(), username, public_url: public_url.trim_end_matches('/').to_owned(), space_ref })
     }
 
     fn doc(&self, entry: &Entry, with_text: bool) -> Doc {
@@ -215,9 +242,17 @@ impl Source for OpenCloudSource {
         Ok(Blob { mime: mime_of(&entry.path), len: Some(entry.size), body: BlobBody::File(entry.path) })
     }
 
-    /// The containing folder in OpenCloud's web app. File-id links (straight
-    /// to the file) need the API and come with it.
+    /// Straight to the file when its id is on disk; otherwise its folder.
     fn deep_link(&self, doc: &Doc) -> Option<String> {
+        if let Some(space_ref) = &self.space_ref {
+            let file_id = atlas_fs::resolve(&self.root, &doc.external_id)
+                .ok()
+                .and_then(|p| atlas_fs::xattr(&p, "user.oc.id"))
+                .filter(|id| is_uuid(id));
+            if let Some(id) = file_id {
+                return Some(permalink(&self.public_url, space_ref, &id));
+            }
+        }
         let folder = doc.path.as_deref().map(|p| format!("/{}", encode_path(p))).unwrap_or_default();
         Some(format!("{}/files/spaces/personal/{}{}", self.public_url, encode_path(&self.username), folder))
     }
@@ -270,7 +305,7 @@ mod tests {
     }
 
     fn source(f: &Fixture) -> OpenCloudSource {
-        OpenCloudSource::new(&f.users, &f.root, "https://opencloud.example/").unwrap()
+        OpenCloudSource::new(&f.users, &f.root, "https://opencloud.example/", None).unwrap()
     }
 
     async fn full(s: &OpenCloudSource, known: &Known) -> (SyncReport, Sink) {
@@ -336,9 +371,9 @@ mod tests {
     #[test]
     fn the_root_must_be_inside_the_users_dir() {
         let f = fixture();
-        assert!(OpenCloudSource::new(&f.users, &f.users, "https://x").is_err(), "the users dir itself");
-        assert!(OpenCloudSource::new(&f.users, &f.users.join("../users/pwb/../.."), "https://x").is_err());
-        let r = OpenCloudSource::new(&f.users, &f.users.join("nobody"), "https://x");
+        assert!(OpenCloudSource::new(&f.users, &f.users, "https://x", None).is_err(), "the users dir itself");
+        assert!(OpenCloudSource::new(&f.users, &f.users.join("../users/pwb/../.."), "https://x", None).is_err());
+        let r = OpenCloudSource::new(&f.users, &f.users.join("nobody"), "https://x", None);
         assert!(matches!(r, Err(SourceError::Config(_))), "not there yet");
     }
 
@@ -354,6 +389,54 @@ mod tests {
         let blob = s.blob("photo.jpg", BlobVariant::Original).await.unwrap();
         assert_eq!(blob.mime, "image/jpeg");
         assert!(s.blob("Documents/plan.md", BlobVariant::Thumbnail).await.is_err());
+    }
+
+    // From a real Jupiter permalink.
+    const STORAGE: &str = "8184153f-ca77-4fe9-8090-01063bcdbc65";
+    const SPACE: &str = "854f8139-f074-409b-9b9e-6ed557c70bc7";
+    const FILE: &str = "a1f06204-84e1-479a-842b-9ec785a663d2";
+
+    #[test]
+    fn permalinks_match_opencloud() {
+        assert_eq!(
+            permalink("https://opencloud.jupiter.sunstead.net", &format!("{STORAGE}${SPACE}"), FILE),
+            "https://opencloud.jupiter.sunstead.net/f/8184153f-ca77-4fe9-8090-01063bcdbc65$854f8139-f074-409b-9b9e-6ed557c70bc7%21a1f06204-84e1-479a-842b-9ec785a663d2"
+        );
+        assert!(is_uuid(FILE));
+        for bad in ["", "not-a-uuid", "8184153f-ca77-4fe9-8090-01063bcdbc6", "8184153f$ca77-4fe9-8090-01063bcdbc65z"] {
+            assert!(!is_uuid(bad), "{bad}");
+        }
+    }
+
+    /// Links straight to the file when the attributes are there. Skipped
+    /// where user xattrs aren't supported (Windows, some tmpfs).
+    #[cfg(unix)]
+    #[test]
+    fn links_to_the_file_from_its_attributes() {
+        let f = fixture();
+        let file = f.root.join("Documents/plan.md");
+        if xattr::set(&f.root, "user.oc.space.id", SPACE.as_bytes()).is_err() {
+            eprintln!("no user xattrs here; skipping");
+            return;
+        }
+        xattr::set(&file, "user.oc.id", FILE.as_bytes()).unwrap();
+        let s = OpenCloudSource::new(&f.users, &f.root, "https://oc.example", Some(STORAGE)).unwrap();
+        let doc = s.doc(&atlas_fs::entry(&f.root, "Documents/plan.md").unwrap(), false);
+        assert_eq!(s.deep_link(&doc).unwrap(), format!("https://oc.example/f/{STORAGE}${SPACE}%21{FILE}"));
+        // A file without an id falls back to its folder.
+        let doc = s.doc(&atlas_fs::entry(&f.root, "Documents/Taxes/2025.txt").unwrap(), false);
+        assert_eq!(s.deep_link(&doc).unwrap(), "https://oc.example/files/spaces/personal/pwb/Documents/Taxes");
+        // A junk id isn't put in a link.
+        xattr::set(&file, "user.oc.id", b"../../evil").unwrap();
+        let doc = s.doc(&atlas_fs::entry(&f.root, "Documents/plan.md").unwrap(), false);
+        assert!(s.deep_link(&doc).unwrap().contains("/files/spaces/personal/pwb/Documents"));
+    }
+
+    #[test]
+    fn without_a_storage_id_links_go_to_folders() {
+        let f = fixture();
+        let s = OpenCloudSource::new(&f.users, &f.root, "https://oc.example", None).unwrap();
+        assert!(s.space_ref.is_none());
     }
 
     #[test]

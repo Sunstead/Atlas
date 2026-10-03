@@ -69,7 +69,7 @@ pub fn build(cfg: &SourcesConfig, db: &Db, key: Option<&MasterKey>, row: &Connec
                 .and_then(|r| r.as_str())
                 .map(PathBuf::from)
                 .ok_or_else(|| SourceError::Config("This connection has no folder; disconnect and connect again".into()))?;
-            Ok(Arc::new(OpenCloudSource::new(&oc.users_dir, &root, oc.urls.public.as_str())?))
+            Ok(Arc::new(OpenCloudSource::new(&oc.users_dir, &root, oc.urls.public.as_str(), oc.storage_id.as_deref())?))
         }
         IMMICH => {
             let immich = cfg.immich.as_ref().ok_or_else(|| SourceError::Config("Immich isn't configured on this server".into()))?;

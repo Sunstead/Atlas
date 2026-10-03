@@ -33,6 +33,21 @@ impl Entry {
     }
 }
 
+/// A text extended attribute (`user.oc.id`), if the platform and the
+/// filesystem have them and the file carries it. Never follows a symlink.
+pub fn xattr(path: &Path, name: &str) -> Option<String> {
+    #[cfg(unix)]
+    {
+        // `xattr::get` reads the link itself, not its target.
+        String::from_utf8(xattr::get(path, name).ok().flatten()?).ok()
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (path, name);
+        None
+    }
+}
+
 /// Whether a name is hidden: dot-files and dot-folders (`.solstice/`,
 /// `.oc-nodes`), which hold app state, not the user's files.
 pub fn is_hidden(name: &str) -> bool {
