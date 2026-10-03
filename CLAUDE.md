@@ -56,14 +56,11 @@ crates/
   atlas-server/      bin `atlas`: axum, auth, routes, indexer, serves the app
   sources/           one crate per source adapter
 app/                 React web app
-packages/sunstead-ui shared themes, tokens, shadcn primitives (source-only)
 ```
 
 Dependency rules:
 - Source crates depend on `atlas-core` (and `atlas-fs`), never on storage.
 - `atlas-server` wires everything together.
-- `packages/sunstead-ui` holds nothing Atlas-specific; it moves to its own repo
-  once a second app adopts it.
 
 ## Sign-in and sessions
 
@@ -163,7 +160,7 @@ Dependency rules:
 **Frontend**
 - React 19, Vite 7, TS strict (`noUnusedLocals`/`Parameters`), TanStack Router
   (code-based routes in `src/router.tsx`) and Query, Zustand 5, Tailwind v4,
-  shadcn (`radix-nova`), lucide, `@/` = `app/src`.
+  shadcn on Base UI (`base-nova`, from `@sunstead/ui`), lucide, `@/` = `app/src`.
 - Every view is reachable by URL. `/search?q=&type=&source=&preview=` is parsed
   in `src/lib/search-params.ts`; the browser search engine entry uses
   `/search?q=%s`.
@@ -175,14 +172,21 @@ Dependency rules:
 - UI copy: sentence case, no em dashes or curly quotes (enforced by eslint in
   `pages/`, `components/`, `layouts/`).
 
-**sunstead-ui**
-- Import from `@sunstead/ui/...` (see the package's `exports`). Inside the
-  package, use relative imports, never `@/`.
-- Themes: a `[data-theme]` block in `packages/sunstead-ui/src/themes/` plus an
-  entry in `src/lib/themes.ts`. `app/index.html` keeps a copy for the first
-  paint; `src/lib/themes-sync.test.ts` keeps them in step.
-- New shadcn primitives go in `packages/sunstead-ui/src/components/ui/`, with
-  `@/lib/utils` rewritten to `../../lib/utils`.
+**sunstead-ui** (its own repo, `Documents/Code/sunstead-ui`)
+- `@sunstead/ui` is a GitHub dependency pinned to a tag in `app/package.json`;
+  bump the tag to update. It's source-only: `App.css` has an `@source` for it,
+  and `vite.config.ts` excludes it from dependency pre-bundling (pre-bundled
+  entry points each get their own theme context).
+- Import from `@sunstead/ui/...` (see the package's `exports`). Themes and
+  primitives change in that repo, not here. Links styled as buttons use
+  `buttonVariants` on the `<a>`/`Link` (Base UI's `render` would give them
+  `role="button"`).
+- `app/index.html` keeps a copy of the theme ids for the first paint;
+  `src/lib/themes-sync.test.ts` keeps it in step with `THEMES`.
+- Working on both at once: install a packed copy
+  (`npm pack` in sunstead-ui, then `npm install -w app <tgz>`); a `file:`
+  link would load a second React from the package's own `node_modules`.
+  Never commit either.
 
 ## Deployment
 

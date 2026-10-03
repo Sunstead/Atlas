@@ -4,7 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
-// One config for the app and the shared packages. Mirrors Cosmos's
+// One config for the app. Mirrors Cosmos's
 // app/eslint.config.js, including the UI copy rules.
 export default tseslint.config(
   {
@@ -56,18 +56,6 @@ export default tseslint.config(
           message: 'Avoid em dashes in UI strings.',
         },
       ],
-    },
-  },
-  {
-    // Vendored shadcn primitives, listed last so these win. The shadcn CLI
-    // regenerates them, so rewriting them for the React Compiler rules would
-    // be undone by the next `shadcn add`.
-    files: ['packages/sunstead-ui/src/components/ui/**'],
-    rules: {
-      'react-hooks/purity': 'off',
-      'react-hooks/set-state-in-effect': 'off',
-      'react-hooks/refs': 'off',
-      'react-refresh/only-export-components': 'off',
     },
   },
 );

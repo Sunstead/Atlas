@@ -1,9 +1,9 @@
 @import 'tailwindcss';
 @import '@sunstead/ui/styles.css';
 
-/* The shared package's components live outside src/, and Tailwind skips
-   node_modules (where the workspace link sits), so point it at the source. */
-@source '../../packages/sunstead-ui/src';
+/* The shared package is source-only and installed under node_modules, which
+   Tailwind skips, so point it at the source. */
+@source '../../node_modules/@sunstead/ui/src';
 
 /* Markdown previews. Small and quiet: a reading view, not a document editor. */
 @layer components {

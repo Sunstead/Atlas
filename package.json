@@ -4,8 +4,7 @@
   "license": "MIT",
   "type": "module",
   "workspaces": [
-    "app",
-    "packages/*"
+    "app"
   ],
   "scripts": {
     "dev": "concurrently -k -n server,app -c yellow,cyan \"cargo run -p atlas-server\" \"npm run dev -w app\"",
