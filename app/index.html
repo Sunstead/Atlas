@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" class="dark" data-theme="sunstead-dark" data-style="rounded" style="color-scheme: dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atlas</title>
+    <script>
+      // Apply the saved theme before first paint, so nothing flashes.
+      // Keep the ids, schemes and styles in step with @sunstead/ui's
+      // lib/themes.ts, and the key with storageKeys('atlas') (a test checks).
+      (function () {
+        var themes = {
+          'sunstead-dark': 'dark rounded',
+          nebula: 'dark rounded',
+          aurora: 'dark rounded',
+          mars: 'dark rounded',
+          'event-horizon': 'dark rounded',
+          eclipse: 'dark rounded',
+          'deep-field': 'dark rounded',
+          'sunstead-light': 'light rounded',
+          solar: 'light rounded',
+          lunar: 'light rounded',
+          comet: 'light rounded',
+          hologram: 'dark tech',
+          terminal: 'dark tech',
+          'red-alert': 'dark tech',
+          blueprint: 'light tech',
+        };
+        var info = function (id) {
+          return Object.prototype.hasOwnProperty.call(themes, id) ? themes[id].split(' ') : null;
+        };
+        try {
+          var t = localStorage.getItem('atlas-theme') || 'sunstead-dark';
+          if (t === 'system') {
+            var s = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            t = localStorage.getItem('atlas-theme-' + s);
+            // Follow system pairs rounded themes only.
+            if (!info(t) || info(t)[0] !== s || info(t)[1] !== 'rounded') t = 'sunstead-' + s;
+          }
+          if (!info(t)) t = 'sunstead-dark';
+          var root = document.documentElement;
+          root.setAttribute('data-theme', t);
+          root.setAttribute('data-style', info(t)[1]);
+          root.className = info(t)[0];
+          root.style.colorScheme = info(t)[0];
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

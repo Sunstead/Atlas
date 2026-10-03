@@ -1,0 +1,83 @@
+/* Hologram (tech): the constellation's projected-light look, app-wide. Deep
+   navy, cyan light and a violet second hue. Square and bracketed through
+   [data-style='tech'] in App.css. */
+[data-theme='hologram'] {
+  --background: #040a16;
+  --foreground: oklch(0.95 0.02 225);
+  --card: #0a1528b3;
+  --card-foreground: oklch(0.95 0.02 225);
+  --popover: #0b1830d6;
+  --popover-foreground: oklch(0.95 0.02 225);
+  --primary: oklch(0.84 0.12 220);
+  --primary-foreground: #031018;
+  --secondary: oklch(0.27 0.04 245);
+  --secondary-foreground: oklch(0.95 0.02 225);
+  --muted: #0f1c30;
+  --muted-foreground: oklch(0.74 0.05 230);
+  --accent: oklch(0.3 0.05 235);
+  --accent-foreground: oklch(0.97 0.02 220);
+  --destructive: oklch(0.7 0.19 18);
+  --border: oklch(0.84 0.12 220 / 0.18);
+  --input: oklch(0.84 0.12 220 / 0.24);
+  --ring: oklch(0.72 0.11 220);
+  --chart-1: oklch(0.88 0.1 220);
+  --chart-2: oklch(0.74 0.11 225);
+  --chart-3: oklch(0.6 0.1 230);
+  --chart-4: oklch(0.46 0.08 240);
+  --chart-5: oklch(0.32 0.06 245);
+  --sidebar: #030812;
+  --sidebar-foreground: oklch(0.74 0.05 230);
+  --sidebar-primary: oklch(0.84 0.12 220);
+  --sidebar-primary-foreground: #031018;
+  --sidebar-accent: #13253f;
+  --sidebar-accent-foreground: oklch(0.97 0.02 220);
+  --sidebar-border: oklch(0.84 0.12 220 / 0.14);
+  --sidebar-ring: oklch(0.72 0.11 220);
+
+  --success: #4ade80;
+  --warning: #facc15;
+  --error: #fb7185;
+
+  --cpu: #60a5fa;
+  --ram: #c084fc;
+  --network: #2dd4bf;
+  --disk: #fb923c;
+
+  --mark-0: #e0f6ff;
+  --mark-1: #7cc8f0;
+
+  --ansi-0: #3b4a63;
+  --ansi-1: #fb7185;
+  --ansi-2: #4ade80;
+  --ansi-3: #facc15;
+  --ansi-4: #60a5fa;
+  --ansi-5: #c084fc;
+  --ansi-6: #22d3ee;
+  --ansi-7: #cbd9ea;
+  --ansi-8: #8195b0;
+  --ansi-9: #fda4af;
+  --ansi-10: #86efac;
+  --ansi-11: #fde047;
+  --ansi-12: #93c5fd;
+  --ansi-13: #d8b4fe;
+  --ansi-14: #67e8f9;
+  --ansi-15: #f0f9ff;
+
+  --glass-blur: 14px;
+  --glass-tint: oklch(0.84 0.12 220 / 0.03);
+
+  --space: #030814;
+  --star: oklch(0.92 0.04 220);
+  --orbit: oklch(0.84 0.12 220 / 0.14);
+  --planet-light: 72%;
+  --planet-mid: 50%;
+  --planet-shade: 12%;
+  --planet-atmosphere: 0.55;
+
+  --holo-space: oklch(0.13 0.025 262);
+  --holo-primary: oklch(0.84 0.12 220);
+  --holo-secondary: oklch(0.78 0.13 290);
+  --holo-text: oklch(0.93 0.03 225);
+  --holo-dim: oklch(0.55 0.04 240);
+  --holo-glow: 0.85;
+}

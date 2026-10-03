@@ -1,0 +1,6 @@
+[package]
+name = "atlas-fs"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

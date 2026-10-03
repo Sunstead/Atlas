@@ -1,0 +1,13 @@
+# Rust workspace output
+/target/
+
+# Node
+node_modules/
+app/dist/
+
+# ts-rs output; `cargo test -p atlas-common` regenerates it.
+app/src/generated/
+
+.env
+*.log
+.DS_Store

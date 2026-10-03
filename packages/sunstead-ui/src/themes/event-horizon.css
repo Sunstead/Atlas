@@ -1,0 +1,81 @@
+/* Event Horizon: true black, and the hot orange of an accretion disk. */
+[data-theme='event-horizon'] {
+  --background: #000000;
+  --foreground: oklch(0.97 0 0);
+  --card: #121212a8;
+  --card-foreground: oklch(0.97 0 0);
+  --popover: #141414c0;
+  --popover-foreground: oklch(0.97 0 0);
+  --primary: oklch(0.72 0.2 45);
+  --primary-foreground: #140400;
+  --secondary: oklch(0.24 0 0);
+  --secondary-foreground: oklch(0.97 0 0);
+  --muted: #161616;
+  --muted-foreground: oklch(0.68 0 0);
+  --accent: oklch(0.23 0.01 45);
+  --accent-foreground: oklch(0.97 0 0);
+  --destructive: oklch(0.65 0.23 15);
+  --border: oklch(1 0 0 / 0.09);
+  --input: oklch(1 0 0 / 0.14);
+  --ring: oklch(0.65 0.17 45);
+  --chart-1: oklch(0.9 0.08 70);
+  --chart-2: oklch(0.8 0.15 55);
+  --chart-3: oklch(0.72 0.2 45);
+  --chart-4: oklch(0.6 0.19 35);
+  --chart-5: oklch(0.45 0.15 30);
+  --sidebar: #070707;
+  --sidebar-foreground: oklch(0.7 0 0);
+  --sidebar-primary: oklch(0.72 0.2 45);
+  --sidebar-primary-foreground: #140400;
+  --sidebar-accent: oklch(0.27 0.012 45);
+  --sidebar-accent-foreground: oklch(0.97 0 0);
+  --sidebar-border: oklch(1 0 0 / 0.08);
+  --sidebar-ring: oklch(0.65 0.17 45);
+
+  --success: oklch(0.77 0.17 150);
+  --warning: oklch(0.9 0.16 100);
+  --error: oklch(0.66 0.23 10);
+
+  --cpu: oklch(0.75 0.12 245);
+  --ram: oklch(0.75 0.16 315);
+  --network: oklch(0.8 0.12 190);
+  --disk: oklch(0.8 0.13 75);
+
+  --mark-0: #ffffff;
+  --mark-1: #9a9a9a;
+
+  --ansi-0: #4d4d4d;
+  --ansi-1: #ff6b6b;
+  --ansi-2: #4fdc85;
+  --ansi-3: #f9d14a;
+  --ansi-4: #6aa7ff;
+  --ansi-5: #e083f5;
+  --ansi-6: #3fd3e6;
+  --ansi-7: #d6d6d6;
+  --ansi-8: #9e9e9e;
+  --ansi-9: #ff9d9d;
+  --ansi-10: #8df0b2;
+  --ansi-11: #fde38a;
+  --ansi-12: #a1c6ff;
+  --ansi-13: #efb3fa;
+  --ansi-14: #86e9f4;
+  --ansi-15: #fafafa;
+
+  --glass-blur: 16px;
+  --glass-tint: oklch(0.75 0.18 45 / 0.02);
+
+  --space: #000000;
+  --star: oklch(0.9 0.02 60);
+  --orbit: oklch(0.78 0.15 50 / 0.12);
+  --planet-light: 72%;
+  --planet-mid: 48%;
+  --planet-shade: 6%;
+  --planet-atmosphere: 0.45;
+
+  --holo-space: #000000;
+  --holo-primary: #ff7a2e;
+  --holo-secondary: #ffc46b;
+  --holo-text: #ffe8d6;
+  --holo-dim: #4a2c1c;
+  --holo-glow: 1;
+}

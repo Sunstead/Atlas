@@ -1,0 +1,81 @@
+/* Aurora: a polar night sky, dark teal with mint and violet curtains. */
+[data-theme='aurora'] {
+  --background: #03100f;
+  --foreground: oklch(0.97 0.015 175);
+  --card: #0b1f1c8c;
+  --card-foreground: oklch(0.97 0.015 175);
+  --popover: #0d2320b8;
+  --popover-foreground: oklch(0.97 0.015 175);
+  --primary: oklch(0.86 0.14 170);
+  --primary-foreground: #02201a;
+  --secondary: oklch(0.29 0.04 180);
+  --secondary-foreground: oklch(0.97 0.015 175);
+  --muted: #10221f;
+  --muted-foreground: oklch(0.73 0.04 175);
+  --accent: oklch(0.3 0.05 178);
+  --accent-foreground: oklch(0.97 0.015 175);
+  --destructive: oklch(0.7 0.19 20);
+  --border: oklch(0.85 0.1 175 / 0.12);
+  --input: oklch(0.85 0.1 175 / 0.18);
+  --ring: oklch(0.7 0.12 172);
+  --chart-1: oklch(0.9 0.09 170);
+  --chart-2: oklch(0.8 0.13 172);
+  --chart-3: oklch(0.68 0.12 185);
+  --chart-4: oklch(0.55 0.1 200);
+  --chart-5: oklch(0.42 0.08 220);
+  --sidebar: #061614;
+  --sidebar-foreground: oklch(0.75 0.045 175);
+  --sidebar-primary: oklch(0.78 0.14 170);
+  --sidebar-primary-foreground: #02201a;
+  --sidebar-accent: oklch(0.3 0.05 178);
+  --sidebar-accent-foreground: oklch(0.97 0.015 175);
+  --sidebar-border: oklch(0.85 0.1 175 / 0.1);
+  --sidebar-ring: oklch(0.7 0.12 172);
+
+  --success: oklch(0.8 0.17 145);
+  --warning: oklch(0.89 0.15 95);
+  --error: oklch(0.68 0.2 20);
+
+  --cpu: oklch(0.74 0.13 255);
+  --ram: oklch(0.76 0.15 305);
+  --network: oklch(0.82 0.11 200);
+  --disk: oklch(0.8 0.13 62);
+
+  --mark-0: #ffffff;
+  --mark-1: #9fc9bf;
+
+  --ansi-0: #3b4f4b;
+  --ansi-1: #ff7a7a;
+  --ansi-2: #5ce39a;
+  --ansi-3: #f5d65a;
+  --ansi-4: #6aaeff;
+  --ansi-5: #d09bff;
+  --ansi-6: #3fdcd6;
+  --ansi-7: #cfe0dc;
+  --ansi-8: #8fa8a2;
+  --ansi-9: #ffa8a8;
+  --ansi-10: #96f2bd;
+  --ansi-11: #fae48c;
+  --ansi-12: #a2cbff;
+  --ansi-13: #e2c2ff;
+  --ansi-14: #8aefec;
+  --ansi-15: #f4fffc;
+
+  --glass-blur: 16px;
+  --glass-tint: oklch(0.85 0.12 170 / 0.035);
+
+  --space: #020c0c;
+  --star: oklch(0.94 0.05 165);
+  --orbit: oklch(0.85 0.1 175 / 0.12);
+  --planet-light: 72%;
+  --planet-mid: 50%;
+  --planet-shade: 12%;
+  --planet-atmosphere: 0.6;
+
+  --holo-space: #010d0d;
+  --holo-primary: #5ef2c8;
+  --holo-secondary: #a98bff;
+  --holo-text: #dcfff5;
+  --holo-dim: #2f5650;
+  --holo-glow: 0.9;
+}

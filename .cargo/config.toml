@@ -1,0 +1,4 @@
+# ts-rs writes every `#[ts(export)]` type here when `cargo test -p atlas-common`
+# runs. Relative to the workspace root, so no `export_to = "../../.."` paths.
+[env]
+TS_RS_EXPORT_DIR = { value = "app/src/generated", relative = true }

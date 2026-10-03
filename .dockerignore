@@ -1,0 +1,11 @@
+# Build context for the Dockerfile. Keep it to sources only.
+.git
+.github
+.vscode
+target
+**/node_modules
+app/dist
+app/src/generated
+**/.DS_Store
+*.log
+.env

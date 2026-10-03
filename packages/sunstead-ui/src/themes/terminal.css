@@ -1,0 +1,81 @@
+/* Terminal (tech): phosphor green on a black CRT, amber for warnings. */
+[data-theme='terminal'] {
+  --background: #020604;
+  --foreground: oklch(0.92 0.1 150);
+  --card: #06120ab3;
+  --card-foreground: oklch(0.92 0.1 150);
+  --popover: #071509d6;
+  --popover-foreground: oklch(0.92 0.1 150);
+  --primary: oklch(0.86 0.21 145);
+  --primary-foreground: #021006;
+  --secondary: oklch(0.26 0.05 150);
+  --secondary-foreground: oklch(0.92 0.1 150);
+  --muted: #0b1a10;
+  --muted-foreground: oklch(0.72 0.09 150);
+  --accent: oklch(0.3 0.06 150);
+  --accent-foreground: oklch(0.95 0.1 150);
+  --destructive: oklch(0.68 0.21 25);
+  --border: oklch(0.86 0.21 145 / 0.2);
+  --input: oklch(0.86 0.21 145 / 0.26);
+  --ring: oklch(0.72 0.17 145);
+  --chart-1: oklch(0.9 0.19 145);
+  --chart-2: oklch(0.76 0.17 145);
+  --chart-3: oklch(0.62 0.14 147);
+  --chart-4: oklch(0.48 0.1 150);
+  --chart-5: oklch(0.34 0.07 150);
+  --sidebar: #010402;
+  --sidebar-foreground: oklch(0.72 0.09 150);
+  --sidebar-primary: oklch(0.86 0.21 145);
+  --sidebar-primary-foreground: #021006;
+  --sidebar-accent: #12301b;
+  --sidebar-accent-foreground: oklch(0.95 0.1 150);
+  --sidebar-border: oklch(0.86 0.21 145 / 0.15);
+  --sidebar-ring: oklch(0.72 0.17 145);
+
+  --success: #6ee26e;
+  --warning: #ffb000;
+  --error: #ff4d4d;
+
+  --cpu: #6a9fff;
+  --ram: #e08cff;
+  --network: #2ee6d6;
+  --disk: #ff8a3d;
+
+  --mark-0: #c8ffd6;
+  --mark-1: #4fd47a;
+
+  --ansi-0: #2c3d31;
+  --ansi-1: #ff4d4d;
+  --ansi-2: #6ee26e;
+  --ansi-3: #ffb000;
+  --ansi-4: #5ec8ff;
+  --ansi-5: #e08cff;
+  --ansi-6: #2ee6d6;
+  --ansi-7: #b8e8c4;
+  --ansi-8: #6f9a7b;
+  --ansi-9: #ff8a8a;
+  --ansi-10: #9cff9c;
+  --ansi-11: #ffcf5c;
+  --ansi-12: #9ad9ff;
+  --ansi-13: #eeb6ff;
+  --ansi-14: #7ff5ea;
+  --ansi-15: #e8ffee;
+
+  --glass-blur: 12px;
+  --glass-tint: oklch(0.86 0.21 145 / 0.03);
+
+  --space: #010402;
+  --star: oklch(0.9 0.12 150);
+  --orbit: oklch(0.86 0.21 145 / 0.14);
+  --planet-light: 70%;
+  --planet-mid: 48%;
+  --planet-shade: 12%;
+  --planet-atmosphere: 0.5;
+
+  --holo-space: #000502;
+  --holo-primary: oklch(0.86 0.21 145);
+  --holo-secondary: oklch(0.85 0.1 190);
+  --holo-text: oklch(0.94 0.1 150);
+  --holo-dim: oklch(0.5 0.08 150);
+  --holo-glow: 0.9;
+}

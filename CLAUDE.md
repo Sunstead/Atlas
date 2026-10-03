@@ -1,0 +1,123 @@
+# CLAUDE.md
+
+## Overview
+
+Sunstead Atlas is the Sunstead homepage: one search over each user's own data
+on Jupiter (files, photos, later notes, calendar and contacts), with previews,
+light actions and deep links into each app. It was planned as "Horizon" in the
+Cosmos roadmap (`Cosmos/docs/ROADMAP.md`, section E). Atlas is the final name.
+
+- **Third-party apps stay independent.** Atlas reads originals on disk where it
+  can (files are the truth) and calls each app's API where it has to, through
+  one adapter per source.
+- **Per user.** Users sign in through Authentik OIDC. Every query is scoped to
+  the signed-in user, and a user only sees data they own or that is shared
+  with them.
+- **Derived vs state.** The search index is derived data: rebuildable, kept
+  under `/srv/storage/derived/atlas`, never backed up. Only small state (users,
+  sessions, connections with sealed credentials) is backed up.
+
+The plan and milestones (M0 scaffold through M6 notes) live in the approved
+plan; current status is M0 (scaffold).
+
+## Commands
+
+```sh
+cargo test --workspace            # Rust tests; also writes app/src/generated/*.ts
+cargo clippy --workspace --all-targets -- -D warnings
+cargo run -p atlas-server         # API on :8080 (ATLAS_BIND); API only unless ATLAS_WEB_DIR is set
+
+npm install                       # once, at the repo root (npm workspaces)
+npm run dev                       # Vite on :1420, proxying /v1, /auth, /healthz to :8080
+npm run lint                      # eslint, whole repo, 0 warnings expected
+npm test                          # vitest (app)
+npm run build                     # tsc + vite build into app/dist
+
+docker build -t atlas .           # from the repo root
+docker run -p 8080:8080 atlas     # serves the app and API on :8080
+```
+
+`app/src/generated/` is gitignored. Run `cargo test -p atlas-common` before the
+first `npm run build` or `tsc`, and after changing a shared type.
+
+## Layout
+
+```
+crates/
+  atlas-common/      wire DTOs; #[derive(TS)] #[ts(export)] -> app/src/generated
+  atlas-core/        Source traits and the query/hit/item model (M2)
+  atlas-state/       rusqlite state DB, backed up (M1)
+  atlas-index/       Tantivy + index.db, derived (M2)
+  atlas-fs/          on-disk walk/watch/extract (M2)
+  atlas-server/      bin `atlas`: axum, auth, routes, indexer, serves the app
+  sources/           one crate per source adapter
+app/                 React web app
+packages/sunstead-ui shared themes, tokens, shadcn primitives (source-only)
+```
+
+Dependency rules:
+- Source crates depend on `atlas-core` (and `atlas-fs`), never on storage.
+- `atlas-server` wires everything together.
+- `packages/sunstead-ui` holds nothing Atlas-specific; it moves to its own repo
+  once a second app adopts it.
+
+## Conventions (matching Cosmos)
+
+**Rust**
+- Edition 2021, one workspace, shared versions in `[workspace.dependencies]`.
+- Shared types: ts-rs 10 with `#[ts(export)]`. The export dir comes from
+  `TS_RS_EXPORT_DIR` in `.cargo/config.toml`, so don't add `export_to`.
+  Annotate 64-bit integers with `#[ts(type = "number")]` (see
+  `atlas-common/src/lib.rs`).
+- Errors: `ApiError { code, message, detail }` (`atlas-common/src/error.rs`),
+  turned into responses by `atlas-server/src/error.rs`. `NotEnabled` (501)
+  means hide it; `Unavailable` (503) means show a retry. An unreachable
+  identity provider is 503, not 401.
+- Routes: `/v1/*`, plus public `/healthz`. Unknown `/v1` and `/auth` paths are
+  404s, never the app shell (`atlas-server/src/web.rs`).
+- Logs: paths only, never query strings (search terms are private). No ANSI
+  colour outside a terminal.
+- Storage: rusqlite (`bundled`) with `PRAGMA user_version` migrations, not
+  sqlx, so the distroless image needs no system libraries.
+- Config: `ATLAS_*` env vars (`atlas-server/src/config.rs`); secrets get a
+  `_FILE` variant.
+
+**Frontend**
+- React 19, Vite 7, TS strict (`noUnusedLocals`/`Parameters`), TanStack Router
+  (code-based routes in `src/router.tsx`) and Query, Zustand 5, Tailwind v4,
+  shadcn (`radix-nova`), lucide, `@/` = `app/src`.
+- Every view is reachable by URL. `/search?q=&type=&source=&preview=` is parsed
+  in `src/lib/search-params.ts`; the browser search engine entry uses
+  `/search?q=%s`.
+- Open views are modelled as tabs (`src/lib/stores/tabs.ts`); the URL is the
+  source of truth for the active tab. The MVP shows one.
+- Server calls go through `api()` (`src/lib/api.ts`), which sends
+  `X-Atlas-Request: 1` on state-changing requests.
+- UI copy: sentence case, no em dashes or curly quotes (enforced by eslint in
+  `pages/`, `components/`, `layouts/`).
+
+**sunstead-ui**
+- Import from `@sunstead/ui/...` (see the package's `exports`). Inside the
+  package, use relative imports, never `@/`.
+- Themes: a `[data-theme]` block in `packages/sunstead-ui/src/themes/` plus an
+  entry in `src/lib/themes.ts`. `app/index.html` keeps a copy for the first
+  paint; `src/lib/themes-sync.test.ts` keeps them in step.
+- New shadcn primitives go in `packages/sunstead-ui/src/components/ui/`, with
+  `@/lib/utils` rewritten to `../../lib/utils`.
+
+## Deployment
+
+Atlas runs on Jupiter (`Documents/Code/Jupiter`), built as
+`ghcr.io/sunstead/atlas` by `.github/workflows/image.yml`:
+- `compose/atlas.yml` on the `homelab` network, with pinned image tags and
+  `cosmos.service*` labels.
+- `extra_hosts: auth.jupiter.sunstead.net:host-gateway`.
+- Runs as uid 1000 so it can read `/srv/storage/data`.
+- Mounts: `atlas-state:/state` (backed up), `${STORAGE_PATH}/derived/atlas:/index`
+  (not backed up), and source folders read-only.
+- Caddy: an `@atlas host atlas.jupiter.sunstead.net` block in both `Caddyfile`
+  and `Caddyfile.dev`.
+- Authentik: a blueprint (`authentik/blueprints/atlas.yaml`) with a
+  confidential client; its secret goes into both Authentik containers.
+
+Changes to Jupiter go through a PR, because a push to its `main` deploys.

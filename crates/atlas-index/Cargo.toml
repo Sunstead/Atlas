@@ -1,0 +1,6 @@
+[package]
+name = "atlas-index"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

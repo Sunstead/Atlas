@@ -1,0 +1,6 @@
+[package]
+name = "atlas-source-immich"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
