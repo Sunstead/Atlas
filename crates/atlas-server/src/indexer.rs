@@ -17,7 +17,7 @@ use crate::sources;
 use atlas_common::SyncInfo;
 use atlas_core::{Source, SourceError, SyncMode};
 use atlas_index::Index;
-use atlas_state::{ConnectionRow, Db};
+use atlas_state::{ConnectionRow, Db, MasterKey};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
@@ -31,6 +31,7 @@ pub struct Indexer {
     pub index: Arc<Index>,
     db: Db,
     sources: Arc<SourcesConfig>,
+    master_key: Option<Arc<MasterKey>>,
     tx: mpsc::UnboundedSender<i64>,
     rx: Mutex<Option<mpsc::UnboundedReceiver<i64>>>,
     inner: Mutex<Inner>,
@@ -64,12 +65,13 @@ fn message(e: &SourceError) -> String {
 }
 
 impl Indexer {
-    pub fn new(index: Arc<Index>, db: Db, sources: Arc<SourcesConfig>) -> Arc<Self> {
+    pub fn new(index: Arc<Index>, db: Db, sources: Arc<SourcesConfig>, master_key: Option<Arc<MasterKey>>) -> Arc<Self> {
         let (tx, rx) = mpsc::unbounded_channel();
         Arc::new_cyclic(|me| Self {
             index,
             db,
             sources,
+            master_key,
             tx,
             rx: Mutex::new(Some(rx)),
             inner: Mutex::new(Inner::default()),
@@ -176,7 +178,7 @@ impl Indexer {
                 return Ok(s.clone());
             }
         }
-        let built = sources::build(&self.sources, row)?;
+        let built = sources::build(&self.sources, &self.db, self.master_key.as_deref(), row)?;
         self.lock().built.insert(row.id, (row.updated_at, built.clone()));
         Ok(built)
     }

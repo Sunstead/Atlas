@@ -3,7 +3,8 @@ import { Highlighted } from '@/components/highlighted';
 import { ItemIcon } from '@/components/item-icon';
 import { ItemPreview } from '@/components/item-preview';
 import { formatWhen } from '@/lib/format';
-import { parsePreviewParam, previewParam, useSearchResults } from '@/lib/items';
+import { blobUrl, parsePreviewParam, previewParam, useSearchResults } from '@/lib/items';
+import { Film, Images } from 'lucide-react';
 import { cn } from '@sunstead/ui/utils';
 import type { SearchHit } from '@/generated/SearchHit';
 import type { SearchResponse } from '@/generated/SearchResponse';
@@ -74,6 +75,11 @@ function Results({
   }
 
   const trouble = data.sources.filter((s) => s.state !== 'ok');
+  const isActive = (hit: SearchHit) => selected?.connection === hit.item.connection && selected.id === hit.item.id;
+  // Photos, videos and albums with a picture show as a strip of thumbnails;
+  // everything else as a list.
+  const media = data.hits.filter((h) => h.thumbnail && MEDIA.includes(h.kind));
+  const rest = data.hits.filter((h) => !media.includes(h));
   return (
     <div className={cn('flex flex-col gap-1 transition-opacity', loading && 'opacity-60')}>
       {trouble.map((s) => (
@@ -81,12 +87,12 @@ function Results({
           {s.label}: {s.state === 'timeout' ? "didn't answer in time" : s.message ?? 'failed'}. Its results are missing.
         </p>
       ))}
-      {data.hits.length === 0 ? (
-        <p className='text-sm text-muted-foreground'>Nothing matches "{q}".</p>
-      ) : (
+      {data.hits.length === 0 && <p className='text-sm text-muted-foreground'>Nothing matches "{q}".</p>}
+      {media.length > 0 && <MediaStrip hits={media} isActive={isActive} onSelect={onSelect} />}
+      {rest.length > 0 && (
         <ul className='flex flex-col'>
-          {data.hits.map((hit) => {
-            const active = selected?.connection === hit.item.connection && selected.id === hit.item.id;
+          {rest.map((hit) => {
+            const active = isActive(hit);
             return (
               <li key={`${hit.item.connection}:${hit.item.id}`}>
                 <button
@@ -117,5 +123,51 @@ function Results({
         </ul>
       )}
     </div>
+  );
+}
+
+const MEDIA = ['photo', 'video', 'album'];
+
+function MediaStrip({
+  hits,
+  isActive,
+  onSelect,
+}: {
+  hits: SearchHit[];
+  isActive: (hit: SearchHit) => boolean;
+  onSelect: (hit: SearchHit) => void;
+}) {
+  return (
+    <section aria-label='Photos' className='mb-2'>
+      <ul className='-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2'>
+        {hits.map((hit) => (
+          <li key={`${hit.item.connection}:${hit.item.id}`} className='shrink-0 snap-start'>
+            <button
+              type='button'
+              onClick={() => onSelect(hit)}
+              aria-current={isActive(hit) || undefined}
+              title={[hit.title, hit.path].filter(Boolean).join(' · ')}
+              className={cn(
+                'group relative block size-28 overflow-hidden rounded-lg bg-muted ring-offset-2 ring-offset-background transition',
+                isActive(hit) ? 'ring-2 ring-primary' : 'hover:opacity-90',
+              )}
+            >
+              <img
+                src={blobUrl(hit.item, { variant: 'thumbnail' })}
+                alt={hit.title}
+                loading='lazy'
+                className='size-full object-cover'
+              />
+              {hit.kind !== 'photo' && (
+                <span className='absolute bottom-1 left-1 flex items-center gap-1 rounded bg-black/60 px-1 py-0.5 text-2xs text-white'>
+                  {hit.kind === 'video' ? <Film className='size-3' /> : <Images className='size-3' />}
+                  {hit.kind === 'album' ? hit.title : 'Video'}
+                </span>
+              )}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

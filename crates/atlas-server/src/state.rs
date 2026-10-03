@@ -36,11 +36,12 @@ pub(crate) mod tests {
         // A fresh index per test, under the OS temp dir.
         let dir = std::env::temp_dir().join(format!("atlas-test-index-{}", atlas_state::random_token(9)));
         let index = Arc::new(atlas_index::Index::open(&dir).unwrap());
+        let master_key = Some(Arc::new(MasterKey::from_bytes(&[7; 32]).unwrap()));
         AppState {
-            indexer: Indexer::new(index, db.clone(), sources.clone()),
+            indexer: Indexer::new(index, db.clone(), sources.clone(), master_key.clone()),
             db,
             auth: Arc::new(Auth::new(mode, &public_url)),
-            master_key: Some(Arc::new(MasterKey::from_bytes(&[7; 32]).unwrap())),
+            master_key,
             sources,
             public_url,
         }

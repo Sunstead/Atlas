@@ -111,7 +111,8 @@ function PreviewBody({ item, preview }: { item: Ref; preview: PreviewInfo }) {
     case 'image':
       return (
         <div className='flex justify-center p-4'>
-          <img src={blobUrl(item)} alt='' className='max-h-[70vh] max-w-full rounded-md object-contain' />
+          {/* The preview rendition: a format browsers show, even for HEIC or RAW originals. */}
+          <img src={blobUrl(item, { variant: 'preview' })} alt='' className='max-h-[70vh] max-w-full rounded-md object-contain' />
         </div>
       );
     case 'pdf':

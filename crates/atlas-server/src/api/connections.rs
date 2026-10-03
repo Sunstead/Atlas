@@ -70,8 +70,9 @@ pub async fn create(
     if credential.is_none() && kind.credential.as_ref().is_some_and(|c| c.required) {
         return Err(AppError::bad_request(format!("{} needs a credential", kind.name)));
     }
-    if credential.is_some() {
+    if let Some(c) = &credential {
         need_key(&state)?;
+        sources::check_credential(&state.sources, &kind.kind, c).await?;
     }
 
     // Each user's file root is pinned when they connect, from the username
@@ -98,8 +99,10 @@ pub async fn update(
     Json(req): Json<UpdateConnection>,
 ) -> Result<Json<ConnectionInfo>, AppError> {
     let credential = clean("credential", req.credential)?;
-    if credential.is_some() {
+    if let Some(c) = &credential {
         need_key(&state)?;
+        let row = state.db.connection(user.id, id).await?;
+        sources::check_credential(&state.sources, &row.kind, c).await?;
     }
     let patch = ConnectionPatch {
         label: clean("label", req.label)?,
@@ -159,7 +162,7 @@ mod tests {
     fn sources() -> SourcesConfig {
         let urls = |a: &str| ServiceUrls { api: Url::parse(a).unwrap(), public: Url::parse(a).unwrap() };
         SourcesConfig {
-            immich: Some(urls("http://immich:2283")),
+            immich: Some(urls("http://127.0.0.1:9")),
             opencloud: Some(OpenCloudConfig { urls: urls("http://opencloud:9200"), users_dir: PathBuf::from("/data/files/users") }),
         }
     }

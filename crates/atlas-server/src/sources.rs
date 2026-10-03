@@ -1,12 +1,12 @@
 //! The kinds of source a user can connect, whether this server is set up for
-//! each, and building a connection's adapter. Immich's adapter arrives with
-//! M3; until then its connections can be saved but aren't searched.
+//! each, and building a connection's adapter.
 
 use crate::config::SourcesConfig;
 use atlas_common::{CredentialInfo, SourceKindInfo};
 use atlas_core::{Source, SourceError};
+use atlas_source_immich::ImmichSource;
 use atlas_source_opencloud::OpenCloudSource;
-use atlas_state::ConnectionRow;
+use atlas_state::{ConnectionRow, Db, MasterKey};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -57,8 +57,9 @@ pub fn is_indexed(kind: &str) -> bool {
     kind == OPENCLOUD
 }
 
-/// The adapter for a connection.
-pub fn build(cfg: &SourcesConfig, row: &ConnectionRow) -> Result<Arc<dyn Source>, SourceError> {
+/// The adapter for a connection. Credentials are opened here, only for as
+/// long as it takes to hand them to the adapter.
+pub fn build(cfg: &SourcesConfig, db: &Db, key: Option<&MasterKey>, row: &ConnectionRow) -> Result<Arc<dyn Source>, SourceError> {
     match row.kind.as_str() {
         OPENCLOUD => {
             let oc = cfg.opencloud.as_ref().ok_or_else(|| SourceError::Config("OpenCloud isn't configured on this server".into()))?;
@@ -70,7 +71,36 @@ pub fn build(cfg: &SourcesConfig, row: &ConnectionRow) -> Result<Arc<dyn Source>
                 .ok_or_else(|| SourceError::Config("This connection has no folder; disconnect and connect again".into()))?;
             Ok(Arc::new(OpenCloudSource::new(&oc.users_dir, &root, oc.urls.public.as_str())?))
         }
-        IMMICH => Err(SourceError::Config("Immich search isn't available yet".into())),
+        IMMICH => {
+            let immich = cfg.immich.as_ref().ok_or_else(|| SourceError::Config("Immich isn't configured on this server".into()))?;
+            let key = key.ok_or_else(|| SourceError::Config("This server can't open saved keys: ATLAS_MASTER_KEY isn't set".into()))?;
+            let secret = db
+                .open_credential(row, key)
+                .map_err(|_| SourceError::Config("The saved API key can't be read. Save it again.".into()))?
+                .ok_or_else(|| SourceError::Config("Add an Immich API key to search your photos".into()))?;
+            let secret = String::from_utf8(secret).map_err(|_| SourceError::Config("The saved API key is damaged. Save it again.".into()))?;
+            Ok(Arc::new(ImmichSource::new(immich.api.as_str(), immich.public.as_str(), &secret)?))
+        }
         other => Err(SourceError::Config(format!("Unknown source kind {other:?}"))),
+    }
+}
+
+/// Tries a credential before it's saved, so a wrong key is caught on the
+/// settings page rather than at the next search. Only a refusal counts: if
+/// the app is down right now, the key is saved anyway (and the next search
+/// says the source is unavailable).
+pub async fn check_credential(cfg: &SourcesConfig, kind: &str, credential: &str) -> Result<(), SourceError> {
+    let result = match (kind, &cfg.immich) {
+        (IMMICH, Some(immich)) => ImmichSource::new(immich.api.as_str(), immich.public.as_str(), credential)?.check().await,
+        // OpenCloud's token isn't used until the API layer.
+        _ => Ok(()),
+    };
+    match result {
+        Err(SourceError::Config(m)) => Err(SourceError::Config(m)),
+        Err(e) => {
+            tracing::warn!(%kind, error = %e, "can't check the credential now; saving it anyway");
+            Ok(())
+        }
+        Ok(()) => Ok(()),
     }
 }

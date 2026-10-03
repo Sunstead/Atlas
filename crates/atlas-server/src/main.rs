@@ -107,7 +107,7 @@ fn build_state(config: &Config) -> Result<AppState, String> {
         .map_err(|e| format!("search index in {}: {e}", config.index_dir.display()))?;
     let sources = Arc::new(config.sources.clone());
     Ok(AppState {
-        indexer: indexer::Indexer::new(Arc::new(index), db.clone(), sources.clone()),
+        indexer: indexer::Indexer::new(Arc::new(index), db.clone(), sources.clone(), master_key.clone()),
         db,
         auth: Arc::new(Auth::new(config.auth.clone(), &config.public_url)),
         master_key,

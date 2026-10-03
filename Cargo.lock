@@ -152,11 +152,13 @@ dependencies = [
  "atlas-core",
  "atlas-fs",
  "atlas-index",
+ "atlas-source-immich",
  "atlas-source-opencloud",
  "atlas-state",
  "axum",
  "base64 0.22.1",
  "dotenvy",
+ "futures-util",
  "jsonwebtoken",
  "reqwest",
  "serde",
@@ -176,6 +178,17 @@ dependencies = [
 [[package]]
 name = "atlas-source-immich"
 version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "atlas-core",
+ "axum",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "url",
+]
 
 [[package]]
 name = "atlas-source-opencloud"

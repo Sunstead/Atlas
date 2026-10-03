@@ -65,7 +65,6 @@ pub struct SourcesConfig {
 #[derive(Debug, Clone)]
 pub struct ServiceUrls {
     /// Where Atlas calls the API, e.g. `http://immich-server:2283`.
-    #[cfg_attr(not(test), expect(dead_code, reason = "read by the Immich adapter (M3) and the OpenCloud API layer (M4)"))]
     pub api: Url,
     /// What links in results point at, e.g. `https://immich.jupiter.sunstead.net`.
     pub public: Url,

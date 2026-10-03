@@ -103,6 +103,7 @@ pub async fn blob(
     let (_, source) = open(&state, &user, conn).await?;
     let variant = match p.variant.as_deref() {
         Some("thumbnail") => BlobVariant::Thumbnail,
+        Some("preview") => BlobVariant::Preview,
         _ => BlobVariant::Original,
     };
     let blob = source.blob(&external, variant).await?;

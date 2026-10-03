@@ -209,7 +209,7 @@ impl Source for OpenCloudSource {
         let entry = self.entry(id)?;
         // No thumbnails from disk: images stand in for their own, anything
         // else has none until the API layer.
-        if variant == BlobVariant::Thumbnail && atlas_fs::kind_for(&entry.path) != TextKind::Image {
+        if variant != BlobVariant::Original && atlas_fs::kind_for(&entry.path) != TextKind::Image {
             return Err(SourceError::NotFound);
         }
         Ok(Blob { mime: mime_of(&entry.path), len: Some(entry.size), body: BlobBody::File(entry.path) })

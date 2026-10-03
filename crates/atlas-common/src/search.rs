@@ -27,6 +27,8 @@ pub struct SearchHit {
     #[ts(type = "number | null")]
     pub modified: Option<i64>,
     pub snippet: Option<Snippet>,
+    /// A thumbnail is available (`/blob?variant=thumbnail`).
+    pub thumbnail: bool,
     /// "Open in app".
     pub url: Option<String>,
 }

@@ -14,7 +14,9 @@ atlas-core.workspace = true
 atlas-index = { path = "../atlas-index" }
 atlas-fs = { path = "../atlas-fs" }
 atlas-source-opencloud = { path = "../sources/atlas-source-opencloud" }
+atlas-source-immich = { path = "../sources/atlas-source-immich" }
 tokio-util = { version = "0.7", features = ["io"] }
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
 
 axum = "0.8"
 # Trimmed from `full`: a runtime, a listener, timers, channels and signals.

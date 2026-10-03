@@ -18,7 +18,7 @@ Cosmos roadmap (`Cosmos/docs/ROADMAP.md`, section E). Atlas is the final name.
   sessions, connections with sealed credentials) is backed up.
 
 Milestones: M0 scaffold, M1 sign-in and connections, M2 OpenCloud file search
-from disk (done); M3 Immich; M4 OpenCloud API; M5 polish (OpenSearch,
+from disk, M3 Immich (done); M4 OpenCloud API; M5 polish (OpenSearch,
 launcher, keyboard, mobile); M6 notes, after Solstice Sync exists.
 
 ## Commands
@@ -109,6 +109,16 @@ Dependency rules:
   read-only. Ids are root-relative paths; `atlas_fs::resolve` refuses `..`,
   hidden segments and symlinks out of the root. Links go to the containing
   folder until the API layer (M4) adds file-id links.
+- **Immich** (`atlas-source-immich`) is federated: each search goes to
+  Immich's smart search and file name search with the user's own API key
+  (needs `asset.read`, `asset.view`, `album.read`; `asset.download` for
+  originals), plus album names (cached 5 minutes). Ids are `asset:<uuid>` /
+  `album:<uuid>`. A key Immich refuses is rejected when it's saved; Immich
+  being down doesn't stop a key being saved.
+- **Search** (`api/search.rs`) asks the index and every federated source at
+  once (each gets `FEDERATED_DEADLINE`, 2.5 s), reports each source's state,
+  and merges ranked lists by Reciprocal Rank Fusion, since BM25 and CLIP
+  scores can't be compared.
 - **Item ids in URLs** are base64url (`api/items.rs`). Blobs are served with
   `CSP: sandbox` (except PDFs) and `nosniff`, so a user's HTML or SVG never
   runs as Atlas.

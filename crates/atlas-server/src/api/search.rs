@@ -1,29 +1,49 @@
-//! `GET /v1/search`: one query across the user's enabled connections. The
-//! index answers for indexed sources; federated sources (Immich, from M3)
-//! will be asked in parallel, each with a deadline, and merged in.
+//! `GET /v1/search`: one query across the user's enabled connections.
+//!
+//! The index answers for indexed sources (OpenCloud); federated sources
+//! (Immich) are asked at the same time, each with [`FEDERATED_DEADLINE`].
+//! A source that fails or runs out of time is reported in `sources`, and
+//! everyone else's results still come back.
+//!
+//! Ranked lists from different engines can't be compared by score (BM25
+//! against CLIP similarity), so they're merged by rank: Reciprocal Rank
+//! Fusion, plus a small nudge for titles that contain the query.
 
 use crate::api::items::encode_id;
 use crate::auth::CurrentUser;
 use crate::error::AppError;
+use crate::sources;
 use crate::state::AppState;
 use atlas_common::{ItemRef, SearchHit, SearchResponse, Snippet, SourceState, SourceStatus};
-use atlas_core::Doc;
+use atlas_core::{Doc, Query as SourceQuery, SourceError};
 use atlas_index::{DocRow, SearchQuery};
+use atlas_state::ConnectionRow;
 use axum::{
     extract::{Query, State},
     Json,
 };
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::time::Duration;
 
 const DEFAULT_LIMIT: usize = 30;
 const MAX_LIMIT: usize = 100;
 const MAX_QUERY: usize = 500;
 
+/// How long a federated source gets. Immich's smart search runs a CLIP model
+/// on the query, which takes a moment on a CPU.
+#[cfg(not(test))]
+pub const FEDERATED_DEADLINE: Duration = Duration::from_millis(2500);
+#[cfg(test)]
+pub const FEDERATED_DEADLINE: Duration = Duration::from_millis(400);
+
+/// RRF's `k`: higher flattens the advantage of the top few ranks.
+const RRF_K: f64 = 60.0;
+
 #[derive(Deserialize)]
 pub struct SearchParams {
     q: Option<String>,
-    /// Item kind: `file`, `photo`, `album`.
+    /// Item kind: `file`, `photo`, `video`, `album`.
     #[serde(rename = "type")]
     kind: Option<String>,
     /// A connection id, or a source kind (`opencloud`).
@@ -51,6 +71,72 @@ fn as_doc(row: &DocRow) -> Doc {
     }
 }
 
+/// One result before merging.
+#[derive(Debug, Clone)]
+struct Candidate {
+    connection: i64,
+    doc: Doc,
+    snippet: Option<Snippet>,
+    thumbnail: bool,
+}
+
+/// Merges ranked lists by Reciprocal Rank Fusion. Each list contributes
+/// `1 / (k + rank)` per item; a title containing the whole query gets half
+/// a top rank's worth on top. Ties keep list order.
+fn fuse(lists: Vec<Vec<Candidate>>, query: &str, limit: usize) -> Vec<Candidate> {
+    let q = query.to_lowercase();
+    let mut scored: Vec<(f64, usize, usize, Candidate)> = Vec::new();
+    for (li, list) in lists.into_iter().enumerate() {
+        for (rank, c) in list.into_iter().enumerate() {
+            let mut score = 1.0 / (RRF_K + rank as f64 + 1.0);
+            if !q.is_empty() && c.doc.title.to_lowercase().contains(&q) {
+                score += 0.5 / (RRF_K + 1.0);
+            }
+            scored.push((score, rank, li, c));
+        }
+    }
+    scored.sort_by(|a, b| b.0.total_cmp(&a.0).then(a.1.cmp(&b.1)).then(a.2.cmp(&b.2)));
+    scored.into_iter().take(limit).map(|(_, _, _, c)| c).collect()
+}
+
+/// Which kinds a source can return, to skip asking it for others.
+fn offers(kind: &str, wanted: Option<&str>) -> bool {
+    let Some(w) = wanted else { return true };
+    match kind {
+        sources::OPENCLOUD => w == "file",
+        sources::IMMICH => matches!(w, "photo" | "video" | "album"),
+        _ => true,
+    }
+}
+
+fn status(c: &ConnectionRow, state: SourceState, message: Option<String>) -> SourceStatus {
+    SourceStatus { connection: c.id, source: c.kind.clone(), label: c.label.clone(), state, message }
+}
+
+/// Asks one federated source, within the deadline.
+async fn ask(state: &AppState, conn: &ConnectionRow, q: &SourceQuery) -> (SourceStatus, Vec<Candidate>) {
+    let source = match state.indexer.source(conn) {
+        Ok(s) => s,
+        Err(e) => return (status(conn, SourceState::Error, Some(e.to_string())), Vec::new()),
+    };
+    let Some(federated) = source.as_federated() else { return (status(conn, SourceState::Ok, None), Vec::new()) };
+    match tokio::time::timeout(FEDERATED_DEADLINE, federated.search(q)).await {
+        Err(_) => (status(conn, SourceState::Timeout, None), Vec::new()),
+        Ok(Err(e)) => {
+            if !matches!(e, SourceError::Config(_)) {
+                tracing::info!(connection = conn.id, error = %e, "federated search failed");
+            }
+            (status(conn, SourceState::Error, Some(e.to_string())), Vec::new())
+        }
+        Ok(Ok(hits)) => (
+            status(conn, SourceState::Ok, None),
+            hits.into_iter()
+                .map(|h| Candidate { connection: conn.id, doc: h.doc, snippet: None, thumbnail: h.has_thumbnail })
+                .collect(),
+        ),
+    }
+}
+
 pub async fn search(
     State(state): State<AppState>,
     CurrentUser(user): CurrentUser,
@@ -58,8 +144,9 @@ pub async fn search(
 ) -> Result<Json<SearchResponse>, AppError> {
     let text: String = p.q.unwrap_or_default().trim().chars().take(MAX_QUERY).collect();
     let limit = p.limit.unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT);
+    let kind = p.kind.filter(|k| !k.is_empty());
 
-    let connections: HashMap<i64, _> = state
+    let connections: HashMap<i64, ConnectionRow> = state
         .db
         .connections(user.id)
         .await?
@@ -72,52 +159,85 @@ pub async fn search(
         .map(|c| (c.id, c))
         .collect();
 
-    let mut sources: Vec<SourceStatus> = connections
-        .values()
-        .map(|c| SourceStatus {
-            connection: c.id,
-            source: c.kind.clone(),
-            label: c.label.clone(),
-            state: SourceState::Ok,
-            message: None,
-        })
-        .collect();
-    sources.sort_by_key(|s| s.connection);
+    let mut ordered: Vec<&ConnectionRow> = connections.values().collect();
+    ordered.sort_by_key(|c| c.id);
 
     if text.is_empty() || connections.is_empty() {
+        let sources = ordered.iter().map(|c| status(c, SourceState::Ok, None)).collect();
         return Ok(Json(SearchResponse { hits: Vec::new(), sources }));
     }
 
-    let only = (connections.len() == 1).then(|| *connections.keys().next().unwrap());
-    let query = SearchQuery { text, kind: p.kind, connection: only, limit: limit * 2 };
-    let index = state.indexer.index.clone();
-    let user_id = user.id.get();
-    let found = tokio::task::spawn_blocking(move || index.search(user_id, &query))
-        .await?
-        .map_err(|e| {
+    // The index, for every indexed connection at once.
+    let indexed: Vec<i64> = ordered
+        .iter()
+        .filter(|c| sources::is_indexed(&c.kind) && offers(&c.kind, kind.as_deref()))
+        .map(|c| c.id)
+        .collect();
+    let local = async {
+        if indexed.is_empty() {
+            return Ok(Vec::new());
+        }
+        let only = (indexed.len() == 1).then(|| indexed[0]);
+        let query = SearchQuery { text: text.clone(), kind: kind.clone(), connection: only, limit: limit * 2 };
+        let index = state.indexer.index.clone();
+        let user_id = user.id.get();
+        let found = tokio::task::spawn_blocking(move || index.search(user_id, &query)).await?.map_err(|e| {
             tracing::error!(error = %e, "search failed");
             AppError::new(atlas_common::ErrorCode::Internal, "Search failed")
         })?;
+        Ok::<_, AppError>(
+            found
+                .into_iter()
+                .filter(|h| indexed.contains(&h.row.connection_id))
+                .map(|h| Candidate {
+                    connection: h.row.connection_id,
+                    doc: as_doc(&h.row),
+                    snippet: h.snippet.map(|(text, ranges)| Snippet { highlights: utf16_ranges(&text, &ranges), text }),
+                    thumbnail: false,
+                })
+                .collect(),
+        )
+    };
 
-    let hits = found
+    // Federated connections, all at once.
+    let squery = SourceQuery { text: text.clone(), kind: kind.clone(), limit };
+    let federated = futures_util::future::join_all(
+        ordered
+            .iter()
+            .filter(|c| !sources::is_indexed(&c.kind) && offers(&c.kind, kind.as_deref()))
+            .map(|c| ask(&state, c, &squery)),
+    );
+
+    let (local, federated) = tokio::join!(local, federated);
+    let mut lists = vec![local?];
+    let mut statuses: HashMap<i64, SourceStatus> = HashMap::new();
+    for (status, hits) in federated {
+        statuses.insert(status.connection, status);
+        lists.push(hits);
+    }
+    let sources = ordered
+        .iter()
+        .map(|c| statuses.remove(&c.id).unwrap_or_else(|| status(c, SourceState::Ok, None)))
+        .collect();
+
+    let hits = fuse(lists, &text, limit)
         .into_iter()
-        .filter_map(|h| {
-            let conn = connections.get(&h.row.connection_id)?;
-            let doc = as_doc(&h.row);
-            let url = state.indexer.source(conn).ok().and_then(|s| s.deep_link(&doc));
+        .filter_map(|c| {
+            let conn = connections.get(&c.connection)?;
+            let url = state.indexer.source(conn).ok().and_then(|s| s.deep_link(&c.doc));
             Some(SearchHit {
-                item: ItemRef { connection: conn.id, source: conn.kind.clone(), id: encode_id(&h.row.external_id) },
-                title: h.row.title,
-                path: h.row.path,
-                kind: h.row.kind,
-                mime: h.row.mime,
-                size: h.row.size,
-                modified: h.row.mtime,
-                snippet: h.snippet.map(|(text, ranges)| Snippet { highlights: utf16_ranges(&text, &ranges), text }),
+                item: ItemRef { connection: conn.id, source: conn.kind.clone(), id: encode_id(&c.doc.external_id) },
+                title: c.doc.title,
+                path: c.doc.path,
+                kind: c.doc.kind,
+                mime: c.doc.mime,
+                size: c.doc.size,
+                modified: c.doc.mtime,
+                snippet: c.snippet,
+                thumbnail: c.thumbnail,
                 url,
             })
         })
-        .take(limit)
         .collect();
 
     Ok(Json(SearchResponse { hits, sources }))
@@ -148,6 +268,10 @@ mod tests {
 
     /// Two users' OpenCloud spaces on disk; signed in (dev mode) as pwb.
     async fn world() -> World {
+        world_with(None).await
+    }
+
+    async fn world_with(immich: Option<&str>) -> World {
         let dir = tempfile::tempdir().unwrap();
         let users = dir.path().join("users");
         std::fs::create_dir_all(users.join("pwb/Documents/Taxes")).unwrap();
@@ -158,7 +282,8 @@ mod tests {
         std::fs::write(users.join("kim/diary.txt"), "kim's refund secret").unwrap();
 
         let urls = ServiceUrls { api: Url::parse("http://opencloud:9200").unwrap(), public: Url::parse("https://oc.example").unwrap() };
-        let sources = SourcesConfig { immich: None, opencloud: Some(OpenCloudConfig { urls, users_dir: users.clone() }) };
+        let immich = immich.map(|u| ServiceUrls { api: Url::parse(u).unwrap(), public: Url::parse("https://immich.example").unwrap() });
+        let sources = SourcesConfig { immich, opencloud: Some(OpenCloudConfig { urls, users_dir: users.clone() }) };
         let state = state(AuthMode::Dev { username: "pwb".into() }, sources);
         state.indexer.start();
         let app = crate::app(state.clone(), None);
@@ -310,6 +435,126 @@ mod tests {
         w.hits("refund", 0).await;
         w.call("DELETE", &format!("/v1/connections/{id}"), None).await;
         assert_eq!(w.state.indexer.index.count(id).unwrap(), 0);
+    }
+
+    fn cand(conn: i64, title: &str) -> Candidate {
+        Candidate {
+            connection: conn,
+            doc: Doc {
+                external_id: title.into(),
+                kind: "file".into(),
+                title: title.into(),
+                path: None,
+                mime: None,
+                size: None,
+                mtime: None,
+                fingerprint: None,
+                body: None,
+            },
+            snippet: None,
+            thumbnail: false,
+        }
+    }
+
+    /// How the fake Immich behaves.
+    #[derive(Clone, Copy, PartialEq)]
+    enum Mode {
+        Up,
+        Slow,
+        Down,
+    }
+
+    /// A fake Immich: one beach photo, any key but "bad-key" accepted.
+    async fn fake_immich(mode: std::sync::Arc<std::sync::Mutex<Mode>>) -> String {
+        use axum::{http::HeaderMap, response::IntoResponse, routing::{get, post}, Json};
+        use serde_json::json;
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let reply = move |h: HeaderMap, mode: std::sync::Arc<std::sync::Mutex<Mode>>| async move {
+            if h.get("x-api-key").and_then(|v| v.to_str().ok()) == Some("bad-key") {
+                return StatusCode::UNAUTHORIZED.into_response();
+            }
+            let m = *mode.lock().unwrap();
+            if m == Mode::Down {
+                return StatusCode::BAD_GATEWAY.into_response();
+            }
+            if m == Mode::Slow {
+                tokio::time::sleep(Duration::from_secs(2)).await;
+            }
+            let photo = json!({ "id": "11111111-1111-4111-8111-111111111111", "type": "IMAGE", "originalFileName": "beach refund.jpg",
+                "originalMimeType": "image/jpeg", "localDateTime": "2024-07-14T18:30:00.000Z" });
+            Json(json!({ "assets": { "items": [photo], "count": 1 }, "albums": { "items": [], "count": 0 } })).into_response()
+        };
+        let (m1, m2) = (mode.clone(), mode.clone());
+        let app = Router::new()
+            .route("/api/search/metadata", post(move |h: HeaderMap| reply(h, m1.clone())))
+            .route("/api/search/smart", post(move |h: HeaderMap| reply(h, m2.clone())))
+            .route("/api/albums", get(|| async { Json(json!([])) }));
+        tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        base
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn photos_and_files_in_one_search_and_trouble_is_reported() {
+        let mode = std::sync::Arc::new(std::sync::Mutex::new(Mode::Up));
+        let immich = fake_immich(mode.clone()).await;
+        let w = world_with(Some(&immich)).await;
+        w.call("POST", "/v1/connections", Some(r#"{"kind":"opencloud"}"#)).await;
+
+        // A key Immich refuses is refused here, before it's saved.
+        let (status, _, body) = w.call("POST", "/v1/connections", Some(r#"{"kind":"immich","credential":"bad-key"}"#)).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{}", String::from_utf8_lossy(&body));
+        let (status, _, _) = w.call("POST", "/v1/connections", Some(r#"{"kind":"immich","credential":"good-key"}"#)).await;
+        assert_eq!(status, StatusCode::CREATED);
+
+        // One search, both sources: the file from the index, the photo from Immich.
+        let r = w.hits("refund", 2).await;
+        let kinds: Vec<&str> = r["hits"].as_array().unwrap().iter().map(|h| h["kind"].as_str().unwrap()).collect();
+        assert!(kinds.contains(&"file") && kinds.contains(&"photo"), "{r}");
+        let photo = r["hits"].as_array().unwrap().iter().find(|h| h["kind"] == "photo").unwrap();
+        assert_eq!(photo["url"], "https://immich.example/photos/11111111-1111-4111-8111-111111111111");
+        assert_eq!(photo["thumbnail"], true);
+        assert!(r["sources"].as_array().unwrap().iter().all(|s| s["state"] == "ok"));
+
+        // type=photo asks only Immich.
+        let r = w.json("/v1/search?q=refund&type=photo").await;
+        assert!(r["hits"].as_array().unwrap().iter().all(|h| h["kind"] == "photo"));
+
+        // Immich failing: files still come back, and the status says why.
+        *mode.lock().unwrap() = Mode::Down;
+        let r = w.json("/v1/search?q=refund").await;
+        assert_eq!(r["hits"].as_array().unwrap().len(), 1);
+        let immich_status = r["sources"].as_array().unwrap().iter().find(|s| s["source"] == "immich").unwrap().clone();
+        assert_eq!(immich_status["state"], "error");
+
+        // Immich slow: the search doesn't wait past the deadline.
+        *mode.lock().unwrap() = Mode::Slow;
+        let started = std::time::Instant::now();
+        let r = w.json("/v1/search?q=refund").await;
+        assert!(started.elapsed() < Duration::from_millis(1500), "{:?}", started.elapsed());
+        assert_eq!(r["hits"].as_array().unwrap().len(), 1);
+        let immich_status = r["sources"].as_array().unwrap().iter().find(|s| s["source"] == "immich").unwrap().clone();
+        assert_eq!(immich_status["state"], "timeout");
+    }
+
+    #[test]
+    fn fusion_interleaves_by_rank_and_favours_title_matches() {
+        let files = vec![cand(1, "a"), cand(1, "b"), cand(1, "c")];
+        let photos = vec![cand(2, "x"), cand(2, "y")];
+        let titles = |v: Vec<Candidate>| v.into_iter().map(|c| c.doc.title).collect::<Vec<_>>();
+        assert_eq!(titles(fuse(vec![files.clone(), photos], "zzz", 10)), ["a", "x", "b", "y", "c"]);
+        // A title containing the query climbs past a rank above it.
+        let photos = vec![cand(2, "x"), cand(2, "beach day")];
+        let out = titles(fuse(vec![files, photos], "beach", 10));
+        assert_eq!(&out[..3], ["beach day", "a", "x"]);
+        assert_eq!(fuse(vec![vec![cand(1, "a"), cand(1, "b")]], "", 1).len(), 1);
+    }
+
+    #[test]
+    fn kinds_go_to_the_sources_that_have_them() {
+        assert!(offers("opencloud", Some("file")) && !offers("opencloud", Some("photo")));
+        assert!(offers("immich", Some("album")) && !offers("immich", Some("file")));
+        assert!(offers("immich", None));
     }
 
     #[test]

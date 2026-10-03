@@ -160,7 +160,12 @@ pub enum Preview {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobVariant {
+    /// The file as stored.
     Original,
+    /// A large rendition for the preview pane, in a format browsers show
+    /// (Immich's for HEIC and RAW). Sources without one serve the original.
+    Preview,
+    /// A small square-ish rendition for result lists.
     Thumbnail,
 }
 
@@ -186,6 +191,12 @@ pub struct Capabilities {
 #[async_trait]
 pub trait Source: Send + Sync {
     fn capabilities(&self) -> Capabilities;
+
+    /// Whether the connection works (the key is accepted, the folder is
+    /// there). Run when a user connects, so mistakes show up immediately.
+    async fn check(&self) -> Result<()> {
+        Ok(())
+    }
 
     /// The item as it is now, straight from the source.
     async fn get(&self, id: &str) -> Result<Doc>;

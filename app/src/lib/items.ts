@@ -42,10 +42,13 @@ export function usePreview(ref: Pick<ItemRef, 'connection' | 'id'> | null) {
 }
 
 /** The item's bytes, for `<img>`, `<video>` and downloads. The session cookie authenticates it. */
-export function blobUrl(ref: Pick<ItemRef, 'connection' | 'id'>, opts: { download?: boolean; thumbnail?: boolean } = {}) {
+export function blobUrl(
+  ref: Pick<ItemRef, 'connection' | 'id'>,
+  opts: { download?: boolean; variant?: 'preview' | 'thumbnail' } = {},
+) {
   const p = new URLSearchParams();
   if (opts.download) p.set('download', '1');
-  if (opts.thumbnail) p.set('variant', 'thumbnail');
+  if (opts.variant) p.set('variant', opts.variant);
   const qs = p.toString();
   return `${itemPath(ref)}/blob${qs ? `?${qs}` : ''}`;
 }
