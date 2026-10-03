@@ -14,8 +14,7 @@ Requirements: Rust (stable), Node 22, npm.
 ```sh
 npm install
 cargo test -p atlas-common     # generates the app's TypeScript types
-cargo run -p atlas-server      # API on http://localhost:8080
-npm run dev                    # app on http://localhost:1420
+npm run dev                    # server on :8080 and the app on http://localhost:1420
 ```
 
 See [CLAUDE.md](CLAUDE.md) for commands, layout and conventions.

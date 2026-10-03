@@ -28,7 +28,8 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo run -p atlas-server         # API on :8080 (ATLAS_BIND); API only unless ATLAS_WEB_DIR is set
 
 npm install                       # once, at the repo root (npm workspaces)
-npm run dev                       # Vite on :1420, proxying /v1, /auth, /healthz to :8080
+npm run dev                       # server (:8080) + Vite (:1420, proxying /v1, /auth, /healthz)
+npm run dev:app / dev:server      # one side only
 npm run lint                      # eslint, whole repo, 0 warnings expected
 npm test                          # vitest (app)
 npm run build                     # tsc + vite build into app/dist

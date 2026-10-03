@@ -6,8 +6,9 @@ import pkg from './package.json';
 
 // In development Vite serves the app and forwards server paths to
 // `cargo run -p atlas-server` on :8080, so the browser sees one origin, as it
-// does in production.
-const server = process.env.ATLAS_DEV_SERVER ?? 'http://localhost:8080';
+// does in production. 127.0.0.1, not localhost: Node resolves localhost to
+// ::1 first, and the server listens on IPv4.
+const server = process.env.ATLAS_DEV_SERVER ?? 'http://127.0.0.1:8080';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
