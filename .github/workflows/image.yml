@@ -68,6 +68,9 @@ jobs:
       - name: Smoke test
         run: |
           set -euo pipefail
+          # Under pipefail, `cmd | grep -q` fails at random: grep exits on the
+          # first match and cmd dies writing the rest (SIGPIPE, 141). Piped
+          # checks read everything with `grep ... >/dev/null` instead.
           # State and index mount points must be owned by uid 1000, or fresh
           # named volumes come up root-owned and unwritable.
           cid=$(docker create atlas:test)
@@ -83,17 +86,17 @@ jobs:
             'http://localhost:8080/auth/login?return_to=%2Fsearch%3Fq%3Danything'
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8080/auth/login)" = 501
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8080/v1/me)" = 401
-          curl -fsS localhost:8080/favicon.svg | grep -q '<svg'
-          curl -fsS localhost:8080/v1/info | grep -q '"api_version":1'
+          curl -fsS localhost:8080/favicon.svg | grep '<svg' >/dev/null
+          curl -fsS localhost:8080/v1/info | grep '"api_version":1' >/dev/null
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8080/v1/nope)" = 404
 
           # Dev sign-in, to see the app shell and a database on the volume.
           docker run -d --name dev -p 8081:8080 -e ATLAS_DEV_USER=smoke -v smoke_state:/state atlas:test
           for i in $(seq 30); do curl -fsS localhost:8081/healthz >/dev/null && break; sleep 1; done
           curl -fsS -c jar -o /dev/null localhost:8081/auth/login
-          curl -fsS -b jar 'localhost:8081/search?q=anything' | grep -q 'id="root"'
-          curl -fsS -b jar localhost:8081/v1/me | grep -q '"username":"smoke"'
-          docker logs dev 2>&1 | grep -q 'state database migrated'
+          curl -fsS -b jar 'localhost:8081/search?q=anything' | grep 'id="root"' >/dev/null
+          curl -fsS -b jar localhost:8081/v1/me | grep '"username":"smoke"' >/dev/null
+          docker logs dev 2>&1 | grep 'state database migrated' >/dev/null
 
           docker logs smoke 2>&1 | tee atlas.log
           grep -q 'serving web app' atlas.log
