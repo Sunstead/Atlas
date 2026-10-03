@@ -103,6 +103,8 @@ impl Indexer {
         let this = self.clone();
         tokio::spawn(async move {
             let mut tick = tokio::time::interval(RECONCILE_EVERY);
+            // The first tick is immediate; startup already queues a full sync.
+            tick.tick().await;
             loop {
                 tick.tick().await;
                 this.sync_all().await;
