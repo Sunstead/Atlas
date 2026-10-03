@@ -17,14 +17,14 @@ RUN --mount=type=cache,id=atlas-bindings-registry,sharing=locked,target=/usr/loc
     cargo test --locked -p atlas-common --quiet
 
 # The web build is platform independent, so it runs natively on the builder.
+# git fetches @sunstead/ui, a GitHub dependency pinned to a tag.
 FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS web
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates  && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY package.json package-lock.json ./
 COPY app/package.json app/
-COPY packages/sunstead-ui/package.json packages/sunstead-ui/
 RUN --mount=type=cache,id=atlas-npm,sharing=locked,target=/root/.npm npm ci --no-audit --no-fund
 COPY app/ app/
-COPY packages/ packages/
 COPY --from=bindings /src/app/src/generated app/src/generated
 RUN npm run build
 

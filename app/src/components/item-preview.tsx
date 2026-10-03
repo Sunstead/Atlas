@@ -1,7 +1,7 @@
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Download, ExternalLink, X } from 'lucide-react';
-import { Button } from '@sunstead/ui/components/button';
+import { Button, buttonVariants } from '@sunstead/ui/components/button';
 import { ItemIcon } from '@/components/item-icon';
 import { formatBytes, formatWhen } from '@/lib/format';
 import { blobUrl, useItem, usePreview } from '@/lib/items';
@@ -41,18 +41,24 @@ export function ItemPreview({ item: ref, onClose }: { item: Ref; onClose?: () =>
         </div>
         <div className='flex shrink-0 gap-1'>
           {info.url && (
-            <Button asChild variant='outline' size='sm'>
-              <a href={info.url} target='_blank' rel='noreferrer'>
-                <ExternalLink />
-                Open
-              </a>
-            </Button>
-          )}
-          <Button asChild variant='ghost' size='icon-sm' aria-label='Download' title='Download'>
-            <a href={blobUrl(ref, { download: true })}>
-              <Download />
+            <a
+              href={info.url}
+              target='_blank'
+              rel='noreferrer'
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
+            >
+              <ExternalLink />
+              Open
             </a>
-          </Button>
+          )}
+          <a
+            href={blobUrl(ref, { download: true })}
+            aria-label='Download'
+            title='Download'
+            className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+          >
+            <Download />
+          </a>
           {onClose && (
             <Button variant='ghost' size='icon-sm' aria-label='Close preview' title='Close' onClick={onClose}>
               <X />

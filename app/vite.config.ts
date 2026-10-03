@@ -16,6 +16,10 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
+  // @sunstead/ui is source with several entry points. Pre-bundling them one
+  // by one gives each its own copy of shared modules (two theme contexts), so
+  // serve it as source, like the app's own files.
+  optimizeDeps: { exclude: ['@sunstead/ui'] },
   server: {
     // Fixed, so the future Tauri shell can point at it.
     port: 1420,
