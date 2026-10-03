@@ -46,6 +46,23 @@ pub struct ConnectionInfo {
     pub created_at: i64,
     #[ts(type = "number")]
     pub updated_at: i64,
+    /// Indexing progress, for sources Atlas indexes.
+    pub sync: Option<SyncInfo>,
+}
+
+#[derive(Serialize, Deserialize, TS, Debug, Clone)]
+#[ts(export)]
+pub struct SyncInfo {
+    /// A sync is under way.
+    pub running: bool,
+    /// Items in the index.
+    #[ts(type = "number")]
+    pub items: u64,
+    /// Unix seconds of the last full sync that finished.
+    #[ts(type = "number | null")]
+    pub last_synced_at: Option<i64>,
+    /// Why the last sync failed, if it did.
+    pub error: Option<String>,
 }
 
 /// `POST /v1/connections`.

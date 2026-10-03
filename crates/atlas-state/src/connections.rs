@@ -116,6 +116,25 @@ impl Db {
         self.call(move |c| get(c, user, id)).await
     }
 
+    /// Every user's connections. For the indexer, which works for all users
+    /// in the background; request handlers use [`Db::connections`].
+    pub async fn all_connections(&self) -> Result<Vec<ConnectionRow>> {
+        self.call(|c| {
+            let mut stmt = c.prepare(&format!("SELECT {COLUMNS} FROM source_connections ORDER BY id"))?;
+            let rows = stmt.query_map([], row)?.collect::<rusqlite::Result<Vec<_>>>()?;
+            Ok(rows)
+        })
+        .await
+    }
+
+    /// One connection by id, whoever owns it. For the indexer only.
+    pub async fn connection_by_id(&self, id: i64) -> Result<Option<ConnectionRow>> {
+        self.call(move |c| {
+            Ok(c.query_row(&format!("SELECT {COLUMNS} FROM source_connections WHERE id = ?1"), [id], row).optional()?)
+        })
+        .await
+    }
+
     /// `key` is needed only when there's a credential to seal.
     pub async fn create_connection(
         &self,

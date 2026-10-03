@@ -17,8 +17,9 @@ use serde_json::json;
 /// Longest label or credential accepted; anything longer is a mistake.
 const MAX_LEN: usize = 4096;
 
-fn info(c: &ConnectionRow) -> ConnectionInfo {
+fn info(state: &AppState, c: &ConnectionRow) -> ConnectionInfo {
     ConnectionInfo {
+        sync: sources::is_indexed(&c.kind).then(|| state.indexer.status(c.id)).flatten(),
         id: c.id,
         kind: c.kind.clone(),
         label: c.label.clone(),
@@ -52,7 +53,7 @@ pub async fn kinds(State(state): State<AppState>, _: CurrentUser) -> Json<Vec<So
 }
 
 pub async fn list(State(state): State<AppState>, CurrentUser(user): CurrentUser) -> Result<Json<Vec<ConnectionInfo>>, AppError> {
-    Ok(Json(state.db.connections(user.id).await?.iter().map(info).collect()))
+    Ok(Json(state.db.connections(user.id).await?.iter().map(|c| info(&state, c)).collect()))
 }
 
 pub async fn create(
@@ -86,7 +87,8 @@ pub async fn create(
         credential: credential.map(String::into_bytes),
     };
     let created = state.db.create_connection(user.id, new, state.master_key.clone()).await?;
-    Ok((StatusCode::CREATED, Json(info(&created))))
+    state.indexer.changed(&created);
+    Ok((StatusCode::CREATED, Json(info(&state, &created))))
 }
 
 pub async fn update(
@@ -106,7 +108,8 @@ pub async fn update(
         credential: credential.map(|c| Some(c.into_bytes())),
     };
     let updated = state.db.update_connection(user.id, id, patch, state.master_key.clone()).await?;
-    Ok(Json(info(&updated)))
+    state.indexer.changed(&updated);
+    Ok(Json(info(&state, &updated)))
 }
 
 pub async fn remove(
@@ -115,7 +118,29 @@ pub async fn remove(
     Path(id): Path<i64>,
 ) -> Result<StatusCode, AppError> {
     state.db.delete_connection(user.id, id).await?;
+    state.indexer.forget(id).await;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// "Sync now": a full sync, queued.
+pub async fn sync(
+    State(state): State<AppState>,
+    CurrentUser(user): CurrentUser,
+    Path(id): Path<i64>,
+) -> Result<Json<ConnectionInfo>, AppError> {
+    let row = state.db.connection(user.id, id).await?;
+    if !sources::is_indexed(&row.kind) {
+        return Err(AppError::new(ErrorCode::NotEnabled, "This source is searched live; there's nothing to sync"));
+    }
+    if !row.enabled {
+        return Err(AppError::bad_request("Resume this connection to sync it"));
+    }
+    state.indexer.enqueue(row.id, atlas_core::SyncMode::Full);
+    let mut out = info(&state, &row);
+    if let Some(s) = out.sync.as_mut() {
+        s.running = true;
+    }
+    Ok(Json(out))
 }
 
 #[cfg(test)]

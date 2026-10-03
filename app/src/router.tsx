@@ -31,7 +31,13 @@ const connectionsRoute = createRoute({
   component: lazyRouteComponent(() => import('./pages/connections-page'), 'ConnectionsPage'),
 });
 
-const routeTree = rootRoute.addChildren([homeRoute, searchRoute, connectionsRoute]);
+const itemRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/item/$conn/$id',
+  component: lazyRouteComponent(() => import('./pages/item-page'), 'ItemPage'),
+});
+
+const routeTree = rootRoute.addChildren([homeRoute, searchRoute, connectionsRoute, itemRoute]);
 
 export const router = createRouter({ routeTree, defaultPreload: 'intent' });
 

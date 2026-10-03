@@ -5,6 +5,7 @@ mod api;
 mod auth;
 mod config;
 mod error;
+mod indexer;
 mod sources;
 mod state;
 mod web;
@@ -33,7 +34,7 @@ async fn main() {
     let dotenv = dotenvy::dotenv().ok();
 
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
+        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info,tantivy=warn")))
         // Colour only on a terminal; `docker logs` should be plain text.
         .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stdout()))
         .init();
@@ -59,6 +60,11 @@ async fn main() {
     tracing::info!(bind = %config.bind, public_url = %config.public_url, version = env!("CARGO_PKG_VERSION"), "atlas listening");
 
     spawn_purge(state.db.clone());
+    state.indexer.start();
+    {
+        let indexer = state.indexer.clone();
+        tokio::spawn(async move { indexer.sync_all().await });
+    }
     if let Mode::Oidc(client) = &state.auth.mode {
         client.spawn_warmup();
     }
@@ -97,11 +103,15 @@ fn build_state(config: &Config) -> Result<AppState, String> {
         AuthMode::Disabled => tracing::warn!("no sign-in configured (ATLAS_OIDC_ISSUER or ATLAS_DEV_USER); nobody can sign in"),
     }
 
+    let index = atlas_index::Index::open(&config.index_dir)
+        .map_err(|e| format!("search index in {}: {e}", config.index_dir.display()))?;
+    let sources = Arc::new(config.sources.clone());
     Ok(AppState {
+        indexer: indexer::Indexer::new(Arc::new(index), db.clone(), sources.clone()),
         db,
         auth: Arc::new(Auth::new(config.auth.clone(), &config.public_url)),
         master_key,
-        sources: Arc::new(config.sources.clone()),
+        sources,
         public_url: config.public_url.clone(),
     })
 }

@@ -10,7 +10,16 @@ export function useSourceKinds() {
 }
 
 export function useConnections() {
-  return useQuery({ queryKey: ['connections'], queryFn: () => api<ConnectionInfo[]>('/v1/connections') });
+  return useQuery({
+    queryKey: ['connections'],
+    queryFn: () => api<ConnectionInfo[]>('/v1/connections'),
+    // Poll while a sync runs or a new connection waits for its first one,
+    // so progress shows.
+    refetchInterval: (q) =>
+      q.state.data?.some((c) => c.enabled && c.sync && (c.sync.running || (!c.sync.last_synced_at && !c.sync.error)))
+        ? 2000
+        : false,
+  });
 }
 
 const json = (body: unknown): RequestInit => ({
@@ -32,6 +41,10 @@ export function useConnectionMutations() {
     update: useMutation({
       mutationFn: ({ id, ...req }: UpdateConnection & { id: number }) =>
         api<ConnectionInfo>(`/v1/connections/${id}`, { method: 'PATCH', ...json(req) }),
+      onSuccess,
+    }),
+    sync: useMutation({
+      mutationFn: (id: number) => api<ConnectionInfo>(`/v1/connections/${id}/sync`, { method: 'POST' }),
       onSuccess,
     }),
     remove: useMutation({

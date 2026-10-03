@@ -19,6 +19,9 @@ pub struct Config {
     /// `ATLAS_STATE_DIR`: where `atlas.db` lives. Default `.data/state`; the
     /// image sets `/state`, the backed-up volume.
     pub state_dir: PathBuf,
+    /// `ATLAS_INDEX_DIR`: the search index. Default `.data/index`; the image
+    /// sets `/index` (derived data, not backed up).
+    pub index_dir: PathBuf,
     pub auth: AuthMode,
     /// `ATLAS_MASTER_KEY[_FILE]`: base64 of 32 bytes, sealing credentials.
     pub master_key: Option<String>,
@@ -62,7 +65,7 @@ pub struct SourcesConfig {
 #[derive(Debug, Clone)]
 pub struct ServiceUrls {
     /// Where Atlas calls the API, e.g. `http://immich-server:2283`.
-    #[cfg_attr(not(test), expect(dead_code, reason = "read by the Immich and OpenCloud adapters (M3, M4)"))]
+    #[cfg_attr(not(test), expect(dead_code, reason = "read by the Immich adapter (M3) and the OpenCloud API layer (M4)"))]
     pub api: Url,
     /// What links in results point at, e.g. `https://immich.jupiter.sunstead.net`.
     pub public: Url,
@@ -71,7 +74,6 @@ pub struct ServiceUrls {
 #[derive(Debug, Clone)]
 pub struct OpenCloudConfig {
     /// `ATLAS_OPENCLOUD_URL` / `ATLAS_OPENCLOUD_PUBLIC_URL`.
-    #[cfg_attr(not(test), expect(dead_code, reason = "read by the OpenCloud adapter (M2 links, M4 API)"))]
     pub urls: ServiceUrls,
     /// `ATLAS_OPENCLOUD_USERS_DIR`: the PosixFS personal spaces, mounted
     /// read-only (`/data/files/users`). Each user's root is `<dir>/<username>`.
@@ -186,6 +188,7 @@ impl Config {
             public_url,
             web_dir: env.get("ATLAS_WEB_DIR").map(PathBuf::from),
             state_dir: env.get("ATLAS_STATE_DIR").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(".data/state")),
+            index_dir: env.get("ATLAS_INDEX_DIR").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(".data/index")),
             auth,
             master_key: env.secret("ATLAS_MASTER_KEY")?,
             sources,
@@ -218,6 +221,7 @@ mod tests {
         assert_eq!(c.public_url.as_str(), "http://localhost:1420/");
         assert!(c.web_dir.is_none());
         assert_eq!(c.state_dir, PathBuf::from(".data/state"));
+        assert_eq!(c.index_dir, PathBuf::from(".data/index"));
         assert!(matches!(c.auth, AuthMode::Disabled));
         assert!(c.master_key.is_none());
         assert!(c.sources.immich.is_none() && c.sources.opencloud.is_none());

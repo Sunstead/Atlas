@@ -4,3 +4,8 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+async-trait = "0.1"
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio-util = "0.7"

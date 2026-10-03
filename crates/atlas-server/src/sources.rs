@@ -1,9 +1,14 @@
-//! The kinds of source a user can connect, and whether this server is set up
-//! for each. The adapters themselves arrive with their milestones (M2
-//! OpenCloud, M3 Immich); this is what the settings page offers meanwhile.
+//! The kinds of source a user can connect, whether this server is set up for
+//! each, and building a connection's adapter. Immich's adapter arrives with
+//! M3; until then its connections can be saved but aren't searched.
 
 use crate::config::SourcesConfig;
 use atlas_common::{CredentialInfo, SourceKindInfo};
+use atlas_core::{Source, SourceError};
+use atlas_source_opencloud::OpenCloudSource;
+use atlas_state::ConnectionRow;
+use std::path::PathBuf;
+use std::sync::Arc;
 
 pub const OPENCLOUD: &str = "opencloud";
 pub const IMMICH: &str = "immich";
@@ -45,4 +50,27 @@ pub fn kinds(cfg: &SourcesConfig) -> Vec<SourceKindInfo> {
 
 pub fn kind(cfg: &SourcesConfig, kind: &str) -> Option<SourceKindInfo> {
     kinds(cfg).into_iter().find(|k| k.kind == kind)
+}
+
+/// Whether Atlas keeps this kind in its own index (and so syncs it).
+pub fn is_indexed(kind: &str) -> bool {
+    kind == OPENCLOUD
+}
+
+/// The adapter for a connection.
+pub fn build(cfg: &SourcesConfig, row: &ConnectionRow) -> Result<Arc<dyn Source>, SourceError> {
+    match row.kind.as_str() {
+        OPENCLOUD => {
+            let oc = cfg.opencloud.as_ref().ok_or_else(|| SourceError::Config("OpenCloud isn't configured on this server".into()))?;
+            let root = row
+                .config
+                .get("root")
+                .and_then(|r| r.as_str())
+                .map(PathBuf::from)
+                .ok_or_else(|| SourceError::Config("This connection has no folder; disconnect and connect again".into()))?;
+            Ok(Arc::new(OpenCloudSource::new(&oc.users_dir, &root, oc.urls.public.as_str())?))
+        }
+        IMMICH => Err(SourceError::Config("Immich search isn't available yet".into())),
+        other => Err(SourceError::Config(format!("Unknown source kind {other:?}"))),
+    }
 }

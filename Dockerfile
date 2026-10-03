@@ -49,7 +49,8 @@ COPY --from=build --chown=1000:1000 /state /state
 COPY --from=build --chown=1000:1000 /index /index
 COPY --from=web /src/app/dist /usr/share/atlas/web
 ENV ATLAS_WEB_DIR=/usr/share/atlas/web \
-    ATLAS_STATE_DIR=/state
+    ATLAS_STATE_DIR=/state \
+    ATLAS_INDEX_DIR=/index
 USER 1000:1000
 EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/atlas"]

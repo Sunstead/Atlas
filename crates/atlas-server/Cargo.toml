@@ -10,10 +10,15 @@ path = "src/main.rs"
 [dependencies]
 atlas-common.workspace = true
 atlas-state = { path = "../atlas-state" }
+atlas-core.workspace = true
+atlas-index = { path = "../atlas-index" }
+atlas-fs = { path = "../atlas-fs" }
+atlas-source-opencloud = { path = "../sources/atlas-source-opencloud" }
+tokio-util = { version = "0.7", features = ["io"] }
 
 axum = "0.8"
 # Trimmed from `full`: a runtime, a listener, timers, channels and signals.
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "sync", "signal"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "sync", "signal", "fs"] }
 tower-http = { version = "0.6", features = ["trace", "compression-gzip", "fs"] }
 
 serde.workspace = true

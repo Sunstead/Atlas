@@ -4,6 +4,8 @@
 
 mod connections;
 pub mod csrf;
+pub mod items;
+mod search;
 
 use crate::auth::CurrentUser;
 use crate::error::AppError;
@@ -11,7 +13,7 @@ use crate::state::AppState;
 use atlas_common::{Me, ServerInfo};
 use axum::{
     middleware,
-    routing::{get, patch},
+    routing::{get, patch, post},
     Json, Router,
 };
 
@@ -25,6 +27,11 @@ pub fn router(state: AppState) -> Router<AppState> {
         .route("/source-kinds", get(connections::kinds))
         .route("/connections", get(connections::list).post(connections::create))
         .route("/connections/{id}", patch(connections::update).delete(connections::remove))
+        .route("/connections/{id}/sync", post(connections::sync))
+        .route("/search", get(search::search))
+        .route("/items/{conn}/{id}", get(items::item))
+        .route("/items/{conn}/{id}/preview", get(items::preview))
+        .route("/items/{conn}/{id}/blob", get(items::blob))
         // Unknown API paths are JSON 404s, never the app shell.
         .fallback(|| async { AppError::not_found() })
         .layer(middleware::from_fn_with_state(state, csrf::guard));

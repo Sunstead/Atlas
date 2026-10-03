@@ -4,3 +4,11 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+atlas-core.workspace = true
+tantivy = "0.26"
+rusqlite = { version = "0.32", features = ["bundled"] }
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

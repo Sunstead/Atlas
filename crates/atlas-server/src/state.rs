@@ -2,6 +2,7 @@
 
 use crate::auth::Auth;
 use crate::config::SourcesConfig;
+use crate::indexer::Indexer;
 use atlas_state::{Db, MasterKey};
 use std::sync::Arc;
 use url::Url;
@@ -15,6 +16,7 @@ pub struct AppState {
     pub master_key: Option<Arc<MasterKey>>,
     pub sources: Arc<SourcesConfig>,
     pub public_url: Url,
+    pub indexer: Arc<Indexer>,
 }
 
 #[cfg(test)]
@@ -29,11 +31,17 @@ pub(crate) mod tests {
 
     pub fn state(mode: AuthMode, sources: SourcesConfig) -> AppState {
         let public_url = Url::parse("http://localhost:1420").unwrap();
+        let db = Db::open_in_memory().unwrap();
+        let sources = Arc::new(sources);
+        // A fresh index per test, under the OS temp dir.
+        let dir = std::env::temp_dir().join(format!("atlas-test-index-{}", atlas_state::random_token(9)));
+        let index = Arc::new(atlas_index::Index::open(&dir).unwrap());
         AppState {
-            db: Db::open_in_memory().unwrap(),
+            indexer: Indexer::new(index, db.clone(), sources.clone()),
+            db,
             auth: Arc::new(Auth::new(mode, &public_url)),
             master_key: Some(Arc::new(MasterKey::from_bytes(&[7; 32]).unwrap())),
-            sources: Arc::new(sources),
+            sources,
             public_url,
         }
     }

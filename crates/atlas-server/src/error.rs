@@ -39,6 +39,29 @@ impl From<StateError> for AppError {
     }
 }
 
+impl From<atlas_core::SourceError> for AppError {
+    fn from(e: atlas_core::SourceError) -> Self {
+        use atlas_core::SourceError as S;
+        match e {
+            S::NotFound => Self::not_found(),
+            S::Config(m) => Self::new(ErrorCode::BadRequest, m),
+            S::Unavailable(m) => Self::new(ErrorCode::Unavailable, m),
+            S::Cancelled => Self::new(ErrorCode::Unavailable, "Cancelled"),
+            S::Other(m) => {
+                tracing::error!(error = %m, "source");
+                Self::new(ErrorCode::Internal, "Something went wrong on the server")
+            }
+        }
+    }
+}
+
+impl From<tokio::task::JoinError> for AppError {
+    fn from(e: tokio::task::JoinError) -> Self {
+        tracing::error!(error = %e, "background task");
+        Self::new(ErrorCode::Internal, "Something went wrong on the server")
+    }
+}
+
 fn status(code: ErrorCode) -> StatusCode {
     match code {
         ErrorCode::BadRequest => StatusCode::BAD_REQUEST,

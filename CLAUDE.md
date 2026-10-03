@@ -17,8 +17,8 @@ Cosmos roadmap (`Cosmos/docs/ROADMAP.md`, section E). Atlas is the final name.
   under `/srv/storage/derived/atlas`, never backed up. Only small state (users,
   sessions, connections with sealed credentials) is backed up.
 
-Milestones: M0 scaffold, M1 sign-in and connections (done); M2 OpenCloud
-file search from disk; M3 Immich; M4 OpenCloud API; M5 polish (OpenSearch,
+Milestones: M0 scaffold, M1 sign-in and connections, M2 OpenCloud file search
+from disk (done); M3 Immich; M4 OpenCloud API; M5 polish (OpenSearch,
 launcher, keyboard, mobile); M6 notes, after Solstice Sync exists.
 
 ## Commands
@@ -48,10 +48,10 @@ first `npm run build` or `tsc`, and after changing a shared type.
 ```
 crates/
   atlas-common/      wire DTOs; #[derive(TS)] #[ts(export)] -> app/src/generated
-  atlas-core/        Source traits and the query/hit/item model (M2)
-  atlas-state/       rusqlite state DB, backed up (M1)
-  atlas-index/       Tantivy + index.db, derived (M2)
-  atlas-fs/          on-disk walk/watch/extract (M2)
+  atlas-core/        Source traits (Source, Indexed, Federated), Doc, Preview, IndexSink
+  atlas-state/       rusqlite state DB, backed up
+  atlas-index/       Tantivy + index.db, derived, rebuildable
+  atlas-fs/          on-disk walk/resolve/extract/watch
   atlas-server/      bin `atlas`: axum, auth, routes, indexer, serves the app
   sources/           one crate per source adapter
 app/                 React web app
@@ -88,6 +88,30 @@ Dependency rules:
   settings (`ATLAS_IMMICH_URL`, `ATLAS_OPENCLOUD_URL` +
   `ATLAS_OPENCLOUD_USERS_DIR`). An OpenCloud connection pins its root to
   `<users dir>/<username>` when it's created.
+
+## Sources and the index
+
+- **Adapters** implement `atlas_core::Source` and, if Atlas keeps their text,
+  `Indexed` (a sync reports `Doc`s to an `IndexSink`); if they're asked at
+  query time, `Federated`. `sources.rs` builds one from a connection row;
+  `indexer.rs` caches it until the row changes.
+- **The indexer** (`atlas-server/src/indexer.rs`) syncs every enabled indexed
+  connection at startup, on create/change/"Sync now", every 15 minutes, and
+  from file watchers (changed files sync alone; a changed or vanished folder
+  triggers a full sync). At most two syncs at once, one per connection, each
+  on a blocking thread.
+- **The index** (`atlas-index`) is `index.db` (rows) plus Tantivy (text,
+  every document tagged with its owner). Every search filters on the user,
+  and rows are re-checked against the user. If the two parts disagree, or
+  `SCHEMA_VERSION` changed, it starts over and the syncs refill it. Never
+  back it up.
+- **OpenCloud** (`atlas-source-opencloud`) reads the user's PosixFS space
+  read-only. Ids are root-relative paths; `atlas_fs::resolve` refuses `..`,
+  hidden segments and symlinks out of the root. Links go to the containing
+  folder until the API layer (M4) adds file-id links.
+- **Item ids in URLs** are base64url (`api/items.rs`). Blobs are served with
+  `CSP: sandbox` (except PDFs) and `nosniff`, so a user's HTML or SVG never
+  runs as Atlas.
 
 ## Conventions (matching Cosmos)
 

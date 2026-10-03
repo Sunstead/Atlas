@@ -4,6 +4,7 @@ import { Button } from '@sunstead/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@sunstead/ui/components/card';
 import { Input } from '@sunstead/ui/components/input';
 import { useConnectionMutations, useConnections, useSourceKinds } from '@/lib/connections';
+import { formatWhen } from '@/lib/format';
 import type { ConnectionInfo } from '@/generated/ConnectionInfo';
 import type { SourceKindInfo } from '@/generated/SourceKindInfo';
 
@@ -103,10 +104,10 @@ function ConnectForm({ kind }: { kind: SourceKindInfo }) {
 }
 
 function Connected({ kind, connection }: { kind: SourceKindInfo; connection: ConnectionInfo }) {
-  const { update, remove } = useConnectionMutations();
+  const { update, remove, sync } = useConnectionMutations();
   const [replacing, setReplacing] = useState(false);
   const [credential, setCredential] = useState('');
-  const error = update.error ?? remove.error;
+  const error = update.error ?? remove.error ?? sync.error;
 
   return (
     <div className='flex flex-col gap-3'>
@@ -119,6 +120,7 @@ function Connected({ kind, connection }: { kind: SourceKindInfo; connection: Con
           </span>
         )}
       </p>
+      {connection.sync && connection.enabled && <SyncLine sync={connection.sync} />}
 
       {replacing && kind.credential && (
         <form
@@ -168,6 +170,11 @@ function Connected({ kind, connection }: { kind: SourceKindInfo; connection: Con
               {connection.has_credential ? `Replace ${kind.credential.label.toLowerCase()}` : `Add ${kind.credential.label.toLowerCase()}`}
             </Button>
           )}
+          {connection.sync && connection.enabled && (
+            <Button variant='outline' disabled={sync.isPending || connection.sync.running} onClick={() => sync.mutate(connection.id)}>
+              Sync now
+            </Button>
+          )}
           <Button
             variant='outline'
             disabled={update.isPending}
@@ -189,5 +196,19 @@ function Connected({ kind, connection }: { kind: SourceKindInfo; connection: Con
         </div>
       )}
     </div>
+  );
+}
+
+function SyncLine({ sync }: { sync: NonNullable<ConnectionInfo['sync']> }) {
+  const items = `${sync.items.toLocaleString()} ${sync.items === 1 ? 'item' : 'items'}`;
+  return (
+    <p className='text-sm text-muted-foreground'>
+      {sync.running
+        ? `Syncing. ${items} so far.`
+        : sync.last_synced_at
+          ? `${items}, synced ${formatWhen(sync.last_synced_at)}.`
+          : 'Not synced yet.'}
+      {sync.error && <span className='block text-error'>Last sync failed: {sync.error}</span>}
+    </p>
   );
 }

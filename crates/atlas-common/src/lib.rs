@@ -16,8 +16,10 @@ pub mod auth;
 pub mod connections;
 pub mod error;
 pub mod meta;
+pub mod search;
 
 pub use auth::*;
 pub use connections::*;
 pub use error::*;
 pub use meta::*;
+pub use search::*;
