@@ -18,9 +18,9 @@ Cosmos roadmap (`Cosmos/docs/ROADMAP.md`, section E). Atlas is the final name.
   sessions, connections with sealed credentials) is backed up.
 
 Milestones: M0 scaffold, M1 sign-in and connections, M2 OpenCloud file search
-from disk, M3 Immich, M5 polish (OpenSearch, suggestions, launcher, keyboard,
-mobile) (done); M4 OpenCloud API (needs auth-app tokens on Jupiter); M6
-notes, after Solstice Sync exists.
+from disk, M3 Immich, M4 OpenCloud links and thumbnails, M5 polish
+(OpenSearch, suggestions, launcher, keyboard, mobile) (done); shared project
+spaces (once any exist on Jupiter); M6 notes, after Solstice Sync exists.
 
 ## Commands
 
@@ -112,6 +112,11 @@ Dependency rules:
   (`/f/<storage>$<space>!<file>`), built from the `user.oc.space.id` /
   `user.oc.id` attributes PosixFS keeps on disk plus
   `ATLAS_OPENCLOUD_STORAGE_ID`; without those, to the containing folder.
+  An optional per-user **app token** (Basic `username:token`; needs
+  `PROXY_ENABLE_APP_AUTH` on OpenCloud) adds thumbnails and previews from
+  OpenCloud's renderer, and the space ids from Graph when they aren't on disk.
+  Admins make tokens with `opencloud auth-app create --user-name=<user>
+  --expiration=<n>h`. Any API failure falls back to disk.
 - **Immich** (`atlas-source-immich`) is federated: each search goes to
   Immich's smart search and file name search with the user's own API key
   (needs `asset.read`, `asset.view`, `album.read`; `asset.download` for

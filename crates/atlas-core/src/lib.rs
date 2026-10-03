@@ -208,6 +208,12 @@ pub trait Source: Send + Sync {
     /// Where "Open in app" goes.
     fn deep_link(&self, doc: &Doc) -> Option<String>;
 
+    /// Whether [`Source::blob`] has a [`BlobVariant::Thumbnail`] for this
+    /// item, so result lists can show one.
+    fn has_thumbnail(&self, _doc: &Doc) -> bool {
+        false
+    }
+
     fn as_indexed(&self) -> Option<&dyn Indexed> {
         None
     }

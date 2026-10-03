@@ -72,7 +72,7 @@ pub async fn create(
     }
     if let Some(c) = &credential {
         need_key(&state)?;
-        sources::check_credential(&state.sources, &kind.kind, c).await?;
+        sources::check_credential(&state.sources, &kind.kind, &user.username, c).await?;
     }
 
     // Each user's file root is pinned when they connect, from the username
@@ -102,7 +102,12 @@ pub async fn update(
     if let Some(c) = &credential {
         need_key(&state)?;
         let row = state.db.connection(user.id, id).await?;
-        sources::check_credential(&state.sources, &row.kind, c).await?;
+        let username = match row.config.get("root").and_then(|r| r.as_str()) {
+            // The OpenCloud username is the pinned folder's name.
+            Some(root) => std::path::Path::new(root).file_name().and_then(|n| n.to_str()).unwrap_or(&user.username).to_owned(),
+            None => user.username.clone(),
+        };
+        sources::check_credential(&state.sources, &row.kind, &username, c).await?;
     }
     let patch = ConnectionPatch {
         label: clean("label", req.label)?,

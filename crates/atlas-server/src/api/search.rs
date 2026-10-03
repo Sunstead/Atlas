@@ -224,7 +224,9 @@ pub async fn search(
         .into_iter()
         .filter_map(|c| {
             let conn = connections.get(&c.connection)?;
-            let url = state.indexer.source(conn).ok().and_then(|s| s.deep_link(&c.doc));
+            let source = state.indexer.source(conn).ok();
+            let url = source.as_ref().and_then(|s| s.deep_link(&c.doc));
+            let thumbnail = c.thumbnail || source.as_ref().is_some_and(|s| s.has_thumbnail(&c.doc));
             Some(SearchHit {
                 item: ItemRef { connection: conn.id, source: conn.kind.clone(), id: encode_id(&c.doc.external_id) },
                 title: c.doc.title,
@@ -234,7 +236,7 @@ pub async fn search(
                 size: c.doc.size,
                 modified: c.doc.mtime,
                 snippet: c.snippet,
-                thumbnail: c.thumbnail,
+                thumbnail,
                 url,
             })
         })

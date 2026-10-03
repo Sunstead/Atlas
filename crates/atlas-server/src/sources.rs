@@ -21,7 +21,7 @@ pub fn kinds(cfg: &SourcesConfig) -> Vec<SourceKindInfo> {
             description: "Your files. Indexed from the server's disk, so search works without a token.".into(),
             credential: Some(CredentialInfo {
                 label: "App token".into(),
-                help: "Optional for now. Used later for links into OpenCloud, thumbnails and shared spaces.".into(),
+                help: "Optional. Adds thumbnails for your photos. Ask the server's admin to make you one.".into(),
                 url: None,
                 required: false,
             }),
@@ -69,7 +69,23 @@ pub fn build(cfg: &SourcesConfig, db: &Db, key: Option<&MasterKey>, row: &Connec
                 .and_then(|r| r.as_str())
                 .map(PathBuf::from)
                 .ok_or_else(|| SourceError::Config("This connection has no folder; disconnect and connect again".into()))?;
-            Ok(Arc::new(OpenCloudSource::new(&oc.users_dir, &root, oc.urls.public.as_str(), oc.storage_id.as_deref())?))
+            let source = OpenCloudSource::new(&oc.users_dir, &root, oc.urls.public.as_str(), oc.storage_id.as_deref())?;
+            // The app token is optional: without it (or if it can't be
+            // opened) the source works from disk alone.
+            let token = match (row.credential.is_some(), key) {
+                (true, Some(key)) => match db.open_credential(row, key) {
+                    Ok(Some(t)) => String::from_utf8(t).ok(),
+                    _ => {
+                        tracing::warn!(connection = row.id, "can't open the saved OpenCloud token; working without it");
+                        None
+                    }
+                },
+                _ => None,
+            };
+            Ok(match token {
+                Some(t) => Arc::new(source.with_api(oc.urls.api.as_str(), &t)?),
+                None => Arc::new(source),
+            })
         }
         IMMICH => {
             let immich = cfg.immich.as_ref().ok_or_else(|| SourceError::Config("Immich isn't configured on this server".into()))?;
@@ -89,10 +105,16 @@ pub fn build(cfg: &SourcesConfig, db: &Db, key: Option<&MasterKey>, row: &Connec
 /// settings page rather than at the next search. Only a refusal counts: if
 /// the app is down right now, the key is saved anyway (and the next search
 /// says the source is unavailable).
-pub async fn check_credential(cfg: &SourcesConfig, kind: &str, credential: &str) -> Result<(), SourceError> {
-    let result = match (kind, &cfg.immich) {
-        (IMMICH, Some(immich)) => ImmichSource::new(immich.api.as_str(), immich.public.as_str(), credential)?.check().await,
-        // OpenCloud's token isn't used until the API layer.
+pub async fn check_credential(cfg: &SourcesConfig, kind: &str, username: &str, credential: &str) -> Result<(), SourceError> {
+    let result = match kind {
+        IMMICH => match &cfg.immich {
+            Some(immich) => ImmichSource::new(immich.api.as_str(), immich.public.as_str(), credential)?.check().await,
+            None => Ok(()),
+        },
+        OPENCLOUD => match &cfg.opencloud {
+            Some(oc) => atlas_source_opencloud::check_token(oc.urls.api.as_str(), username, credential).await,
+            None => Ok(()),
+        },
         _ => Ok(()),
     };
     match result {

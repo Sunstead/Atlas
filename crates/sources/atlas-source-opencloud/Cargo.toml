@@ -11,10 +11,14 @@ async-trait = "0.1"
 tokio-util = "0.7"
 tracing.workspace = true
 url = "2"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-webpki-roots"] }
+serde.workspace = true
 
 [dev-dependencies]
 tempfile = "3"
-tokio = { version = "1", features = ["rt", "macros"] }
+tokio = { version = "1", features = ["rt", "macros", "net"] }
+axum = "0.8"
+serde_json.workspace = true
 
 [target.'cfg(unix)'.dev-dependencies]
 xattr = "1"

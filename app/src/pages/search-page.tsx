@@ -129,7 +129,16 @@ function Results({
                     active && 'bg-muted',
                   )}
                 >
-                  <ItemIcon mime={hit.mime} className='mt-0.5 size-4 shrink-0 text-muted-foreground' />
+                  {hit.thumbnail ? (
+                    <img
+                      src={blobUrl(hit.item, { variant: 'thumbnail' })}
+                      alt=''
+                      loading='lazy'
+                      className='size-10 shrink-0 rounded-md bg-muted object-cover'
+                    />
+                  ) : (
+                    <ItemIcon mime={hit.mime} className='mt-0.5 size-4 shrink-0 text-muted-foreground' />
+                  )}
                   <span className='min-w-0 flex-1'>
                     <span className='block truncate text-sm font-medium'>{hit.title}</span>
                     <span className='block truncate text-xs text-muted-foreground'>
