@@ -1,8 +1,8 @@
 {
   "name": "atlas",
   "private": true,
+  "license": "MIT",
   "type": "module",
-  "license": "UNLICENSED",
   "workspaces": [
     "app",
     "packages/*"
