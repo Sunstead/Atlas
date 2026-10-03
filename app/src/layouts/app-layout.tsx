@@ -2,6 +2,7 @@ import { Link, useRouterState } from '@tanstack/react-router';
 import { Compass } from 'lucide-react';
 import { SearchBox } from '@/components/search-box';
 import { ThemeSelect } from '@/components/theme-select';
+import { UserMenu } from '@/components/user-menu';
 
 /** The shell: a header with the search field everywhere but home, then the page. */
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -18,6 +19,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </Link>
         <div className='mx-auto w-full max-w-2xl'>{!onHome && <SearchBox key={q} initial={q} />}</div>
         <ThemeSelect />
+        <UserMenu />
       </header>
       <main className='flex flex-1 flex-col'>{children}</main>
     </div>

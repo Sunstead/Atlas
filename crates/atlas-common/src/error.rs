@@ -13,6 +13,8 @@ pub enum ErrorCode {
     Unauthorized,
     Forbidden,
     NotFound,
+    /// Clashes with what exists, e.g. a second connection of one kind.
+    Conflict,
     /// Feature or source disabled in config. Hide it.
     NotEnabled,
     /// Configured but failing right now (the identity provider, a source).

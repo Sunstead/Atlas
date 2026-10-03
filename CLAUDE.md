@@ -17,12 +17,14 @@ Cosmos roadmap (`Cosmos/docs/ROADMAP.md`, section E). Atlas is the final name.
   under `/srv/storage/derived/atlas`, never backed up. Only small state (users,
   sessions, connections with sealed credentials) is backed up.
 
-The plan and milestones (M0 scaffold through M6 notes) live in the approved
-plan; current status is M0 (scaffold).
+Milestones: M0 scaffold, M1 sign-in and connections (done); M2 OpenCloud
+file search from disk; M3 Immich; M4 OpenCloud API; M5 polish (OpenSearch,
+launcher, keyboard, mobile); M6 notes, after Solstice Sync exists.
 
 ## Commands
 
 ```sh
+cp .env.example .env              # once: dev sign-in (ATLAS_DEV_USER) for debug builds
 cargo test --workspace            # Rust tests; also writes app/src/generated/*.ts
 cargo clippy --workspace --all-targets -- -D warnings
 cargo run -p atlas-server         # API on :8080 (ATLAS_BIND); API only unless ATLAS_WEB_DIR is set
@@ -62,6 +64,31 @@ Dependency rules:
 - `packages/sunstead-ui` holds nothing Atlas-specific; it moves to its own repo
   once a second app adopts it.
 
+## Sign-in and sessions
+
+- **Modes** (`atlas-server/src/config.rs`): `ATLAS_OIDC_*` for Authentik
+  (confidential client, PKCE + nonce, `auth/oidc.rs`); `ATLAS_DEV_USER` for
+  local development (everyone is that user, logged loudly); neither means
+  nobody can sign in and `/auth/login` says so (501).
+- **Sessions** are server-side (`atlas-state/src/sessions.rs`): a random token
+  in the cookie, only its SHA-256 in the database, 30 days sliding. The cookie
+  is `__Host-atlas_session` (Secure) over HTTPS, `atlas_session` over HTTP.
+- **Handlers** take `CurrentUser` (`auth/mod.rs`) and scope every query by
+  `user.id`. `UserId` can only come from the state crate, never from input.
+- **The app shell is gated** (`web.rs`): a page load without a session goes to
+  `/auth/login?return_to=<path+query>`, so address-bar searches survive
+  sign-in. `return_to` must be a same-origin path (`auth/return_to.rs`).
+- **CSRF** (`api/csrf.rs`): non-GET requests need `X-Atlas-Request: 1` and, if
+  sent, an `Origin` equal to `ATLAS_PUBLIC_URL`'s.
+- **Credentials** (API keys) are sealed with XChaCha20-Poly1305 under
+  `ATLAS_MASTER_KEY`, bound to `user|connection|kind`
+  (`atlas-state/src/crypto.rs`), and never returned by the API. Debug and dev
+  sign-in fall back to a built-in key.
+- **Source kinds** (`sources.rs`) are offered only when the server has their
+  settings (`ATLAS_IMMICH_URL`, `ATLAS_OPENCLOUD_URL` +
+  `ATLAS_OPENCLOUD_USERS_DIR`). An OpenCloud connection pins its root to
+  `<users dir>/<username>` when it's created.
+
 ## Conventions (matching Cosmos)
 
 **Rust**
@@ -92,7 +119,8 @@ Dependency rules:
   `/search?q=%s`.
 - Open views are modelled as tabs (`src/lib/stores/tabs.ts`); the URL is the
   source of truth for the active tab. The MVP shows one.
-- Server calls go through `api()` (`src/lib/api.ts`), which sends
+- Server calls go through `api()` (`src/lib/api.ts`), which sends a 401 to
+  sign-in (returning to the current page) and sends
   `X-Atlas-Request: 1` on state-changing requests.
 - UI copy: sentence case, no em dashes or curly quotes (enforced by eslint in
   `pages/`, `components/`, `layouts/`).

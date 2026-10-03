@@ -9,6 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 atlas-common.workspace = true
+atlas-state = { path = "../atlas-state" }
 
 axum = "0.8"
 # Trimmed from `full`: a runtime, a listener, timers, channels and signals.
@@ -20,6 +21,17 @@ serde_json.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+url = "2"
+# Debug builds read a local `.env` (see .env.example); release builds never do.
+dotenvy = "0.15"
+
+# OIDC: discovery, JWKS and the token exchange over HTTPS, then JWT checks.
+# rustls with bundled roots, so the distroless image needs no CA store; the
+# same choices as Cosmos.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-webpki-roots"] }
+jsonwebtoken = { version = "11", default-features = false, features = ["rust_crypto"] }
+sha2 = "0.10"
+base64 = "0.22"
 
 [dev-dependencies]
 tempfile = "3"

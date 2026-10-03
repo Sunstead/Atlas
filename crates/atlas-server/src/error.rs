@@ -2,6 +2,7 @@
 //! code is what the client acts on.
 
 use atlas_common::{ApiError, ErrorCode};
+use atlas_state::StateError;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -18,6 +19,24 @@ impl AppError {
     pub fn not_found() -> Self {
         Self::new(ErrorCode::NotFound, "Not found")
     }
+
+    pub fn bad_request(message: impl Into<String>) -> Self {
+        Self::new(ErrorCode::BadRequest, message)
+    }
+}
+
+impl From<StateError> for AppError {
+    fn from(e: StateError) -> Self {
+        match e {
+            StateError::NotFound => Self::not_found(),
+            StateError::Conflict(m) => Self::new(ErrorCode::Conflict, m),
+            e => {
+                // Details stay in the log; they can name paths and keys.
+                tracing::error!(error = %e, "state database");
+                Self::new(ErrorCode::Internal, "Something went wrong on the server")
+            }
+        }
+    }
 }
 
 fn status(code: ErrorCode) -> StatusCode {
@@ -26,6 +45,7 @@ fn status(code: ErrorCode) -> StatusCode {
         ErrorCode::Unauthorized => StatusCode::UNAUTHORIZED,
         ErrorCode::Forbidden => StatusCode::FORBIDDEN,
         ErrorCode::NotFound => StatusCode::NOT_FOUND,
+        ErrorCode::Conflict => StatusCode::CONFLICT,
         ErrorCode::NotEnabled => StatusCode::NOT_IMPLEMENTED,
         ErrorCode::Unavailable => StatusCode::SERVICE_UNAVAILABLE,
         ErrorCode::Internal => StatusCode::INTERNAL_SERVER_ERROR,

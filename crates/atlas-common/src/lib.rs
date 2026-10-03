@@ -12,8 +12,12 @@
 //! unix timestamps, counters), all of which sit far below
 //! `Number.MAX_SAFE_INTEGER`.
 
+pub mod auth;
+pub mod connections;
 pub mod error;
 pub mod meta;
 
+pub use auth::*;
+pub use connections::*;
 pub use error::*;
 pub use meta::*;

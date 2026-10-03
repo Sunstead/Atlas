@@ -36,6 +36,20 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     data = text ? JSON.parse(text) : null;
   } catch {}
 
+  // The session ended (expired, or signed out elsewhere): sign in again and
+  // come back here.
+  if (res.status === 401) window.location.assign(signInUrl(window.location));
   if (!res.ok) throw new ApiRequestError(res.status, isApiError(data) ? data : null);
   return data as T;
+}
+
+/** The sign-in URL that returns to `location` afterwards. */
+export function signInUrl(location: { pathname: string; search: string }): string {
+  return `/auth/login?return_to=${encodeURIComponent(location.pathname + location.search)}`;
+}
+
+/** Retry server trouble once; a 4xx won't change on retry. */
+export function shouldRetry(failureCount: number, error: unknown): boolean {
+  if (error instanceof ApiRequestError && error.status < 500) return false;
+  return failureCount < 1;
 }
