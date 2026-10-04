@@ -169,7 +169,7 @@ Dependency rules:
 **Frontend**
 - React 19, Vite 7, TS strict (`noUnusedLocals`/`Parameters`), TanStack Router
   (code-based routes in `src/router.tsx`) and Query, Zustand 5, Tailwind v4,
-  shadcn on Base UI (`base-nova`, from `@sunstead/ui`), lucide, `@/` = `app/src`.
+  shadcn on Base UI (`base-vega`, from `@sunstead/ui`), lucide, `@/` = `app/src`.
 - Every view is reachable by URL. `/search?q=&type=&source=&preview=` is parsed
   in `src/lib/search-params.ts`; the browser search engine entry uses
   `/search?q=%s`.
