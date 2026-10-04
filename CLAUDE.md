@@ -183,7 +183,8 @@ Dependency rules:
 
 **sunstead-ui** (its own repo, `Documents/Code/sunstead-ui`)
 - `@sunstead/ui` is a GitHub dependency pinned to a tag in `app/package.json`;
-  bump the tag to update. It's source-only: `App.css` has an `@source` for it,
+  bump the tag to update. It's source-only: `App.css` has an `@source` for it
+  (`src/styles-source.test.ts` fails if npm installs it anywhere else),
   and `vite.config.ts` excludes it from dependency pre-bundling (pre-bundled
   entry points each get their own theme context).
 - Import from `@sunstead/ui/...` (see the package's `exports`). Themes and
