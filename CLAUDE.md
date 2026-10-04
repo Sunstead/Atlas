@@ -19,8 +19,8 @@ Cosmos roadmap (`Cosmos/docs/ROADMAP.md`, section E). Atlas is the final name.
 
 Milestones: M0 scaffold, M1 sign-in and connections, M2 OpenCloud file search
 from disk, M3 Immich, M4 OpenCloud links and thumbnails, M5 polish
-(OpenSearch, suggestions, launcher, keyboard, mobile) (done); shared project
-spaces (once any exist on Jupiter); M6 notes, after Solstice Sync exists.
+(OpenSearch, suggestions, launcher, keyboard, mobile), M6 Solstice notes
+(done); shared project spaces (once any exist on Jupiter).
 
 ## Commands
 
@@ -84,8 +84,9 @@ Dependency rules:
   sign-in fall back to a built-in key.
 - **Source kinds** (`sources.rs`) are offered only when the server has their
   settings (`ATLAS_IMMICH_URL`, `ATLAS_OPENCLOUD_URL` +
-  `ATLAS_OPENCLOUD_USERS_DIR`). An OpenCloud connection pins its root to
-  `<users dir>/<username>` when it's created.
+  `ATLAS_OPENCLOUD_USERS_DIR`, `ATLAS_SOLSTICE_NOTES_DIR`). OpenCloud and
+  Solstice connections pin their root to `<dir>/<username>` when they're
+  created.
 
 ## Sources and the index
 
@@ -120,6 +121,14 @@ Dependency rules:
   originals), plus album names (cached 5 minutes). Ids are `asset:<uuid>` /
   `album:<uuid>`. A key Immich refuses is rejected when it's saved; Immich
   being down doesn't stop a key being saved.
+- **Solstice** (`atlas-source-solstice`) reads the user's Solstice Sync
+  vaults from disk, read-only: `<notes dir>/<username>/<vault>/`, the plain
+  files the sync server keeps. Ids are `<vault>/<path>`; files outside a
+  vault and the server's hidden `.solstice/` are skipped. Markdown is
+  `kind: note`, anything else `file`. Links are
+  `solstice://open?vault=<vault>&path=<path>`, which the desktop app
+  matches to a folder synced to that vault (or named after it); the app
+  opens such links in place, not in a new tab (`lib/links.ts`).
 - **Search** (`api/search.rs`) asks the index and every federated source at
   once (each gets `FEDERATED_DEADLINE`, 2.5 s), reports each source's state,
   and merges ranked lists by Reciprocal Rank Fusion, since BM25 and CLIP

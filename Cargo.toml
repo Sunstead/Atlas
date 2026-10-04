@@ -8,11 +8,12 @@ members = [
     "crates/atlas-server",
     "crates/sources/atlas-source-opencloud",
     "crates/sources/atlas-source-immich",
+    "crates/sources/atlas-source-solstice",
 ]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 license = "MIT"
 

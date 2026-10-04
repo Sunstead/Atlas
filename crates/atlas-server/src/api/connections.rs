@@ -77,8 +77,15 @@ pub async fn create(
 
     // Each user's file root is pinned when they connect, from the username
     // they signed in with. Later renames don't move it.
-    let config = match (kind.kind.as_str(), &state.sources.opencloud) {
-        (sources::OPENCLOUD, Some(oc)) => json!({ "root": oc.users_dir.join(&user.username) }),
+    let config = match kind.kind.as_str() {
+        sources::OPENCLOUD => match &state.sources.opencloud {
+            Some(oc) => json!({ "root": oc.users_dir.join(&user.username) }),
+            None => json!({}),
+        },
+        sources::SOLSTICE => match &state.sources.solstice {
+            Some(sol) => json!({ "root": sol.notes_dir.join(&user.username) }),
+            None => json!({}),
+        },
         _ => json!({}),
     };
     let new = NewConnection {
@@ -153,7 +160,7 @@ pub async fn sync(
 
 #[cfg(test)]
 mod tests {
-    use crate::config::{AuthMode, OpenCloudConfig, ServiceUrls, SourcesConfig};
+    use crate::config::{AuthMode, OpenCloudConfig, ServiceUrls, SolsticeConfig, SourcesConfig};
     use crate::state::tests::state;
     use axum::{
         body::Body,
@@ -169,6 +176,7 @@ mod tests {
         SourcesConfig {
             immich: Some(urls("http://127.0.0.1:9")),
             opencloud: Some(OpenCloudConfig { urls: urls("http://opencloud:9200"), users_dir: PathBuf::from("/data/files/users"), storage_id: None }),
+            solstice: Some(SolsticeConfig { notes_dir: PathBuf::from("/data/notes") }),
         }
     }
 
@@ -220,7 +228,7 @@ mod tests {
 
         let (status, kinds) = c.call("GET", "/v1/source-kinds", None).await;
         assert_eq!(status, StatusCode::OK);
-        assert_eq!(kinds.as_array().unwrap().len(), 2);
+        assert_eq!(kinds.as_array().unwrap().len(), 3);
 
         let (status, created) =
             c.call("POST", "/v1/connections", Some(serde_json::json!({ "kind": "immich", "credential": " key-123 " }))).await;
@@ -260,14 +268,20 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn opencloud_pins_the_users_root() {
+    async fn file_sources_pin_the_users_root() {
         let (app, s) = dev_app(sources());
         let c = Client::signed_in(app).await;
-        let (status, _) = c.call("POST", "/v1/connections", Some(serde_json::json!({ "kind": "opencloud" }))).await;
-        assert_eq!(status, StatusCode::CREATED);
+        for kind in ["opencloud", "solstice"] {
+            let (status, _) = c.call("POST", "/v1/connections", Some(serde_json::json!({ "kind": kind }))).await;
+            assert_eq!(status, StatusCode::CREATED, "{kind}");
+        }
         let rows = c.rows(&s).await;
-        let root = PathBuf::from(rows[0].config["root"].as_str().unwrap());
-        assert_eq!(root, PathBuf::from("/data/files/users").join("pwb"));
+        let root = |kind: &str| {
+            let row = rows.iter().find(|r| r.kind == kind).unwrap();
+            PathBuf::from(row.config["root"].as_str().unwrap())
+        };
+        assert_eq!(root("opencloud"), PathBuf::from("/data/files/users").join("pwb"));
+        assert_eq!(root("solstice"), PathBuf::from("/data/notes").join("pwb"));
     }
 
     #[tokio::test]

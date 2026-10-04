@@ -16,6 +16,7 @@ atlas-index = { path = "../atlas-index" }
 atlas-fs = { path = "../atlas-fs" }
 atlas-source-opencloud = { path = "../sources/atlas-source-opencloud" }
 atlas-source-immich = { path = "../sources/atlas-source-immich" }
+atlas-source-solstice = { path = "../sources/atlas-source-solstice" }
 tokio-util = { version = "0.7", features = ["io"] }
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 

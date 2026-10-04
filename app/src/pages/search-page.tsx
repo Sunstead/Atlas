@@ -6,6 +6,7 @@ import { ItemPreview } from '@/components/item-preview';
 import { formatWhen } from '@/lib/format';
 import { isTyping, useKeydown } from '@/lib/keyboard';
 import { blobUrl, parsePreviewParam, previewParam, useSearchResults } from '@/lib/items';
+import { openLink } from '@/lib/links';
 import { Film, Images } from 'lucide-react';
 import { cn } from '@sunstead/ui/utils';
 import type { SearchHit } from '@/generated/SearchHit';
@@ -41,7 +42,7 @@ export function SearchPage() {
       select(null);
     } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && at >= 0 && visible[at].url) {
       e.preventDefault();
-      window.open(visible[at].url!, '_blank', 'noreferrer');
+      openLink(visible[at].url!);
     }
   });
   useEffect(() => {

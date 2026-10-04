@@ -5,6 +5,7 @@ import { Button, buttonVariants } from '@sunstead/ui/components/button';
 import { ItemIcon } from '@/components/item-icon';
 import { formatBytes, formatWhen } from '@/lib/format';
 import { blobUrl, useItem, usePreview } from '@/lib/items';
+import { linkProps } from '@/lib/links';
 import type { ItemRef } from '@/generated/ItemRef';
 import type { PreviewInfo } from '@/generated/PreviewInfo';
 
@@ -41,12 +42,7 @@ export function ItemPreview({ item: ref, onClose }: { item: Ref; onClose?: () =>
         </div>
         <div className='flex shrink-0 gap-1'>
           {info.url && (
-            <a
-              href={info.url}
-              target='_blank'
-              rel='noreferrer'
-              className={buttonVariants({ variant: 'outline', size: 'sm' })}
-            >
+            <a {...linkProps(info.url)} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
               <ExternalLink />
               Open
             </a>
