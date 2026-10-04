@@ -62,6 +62,7 @@ pub struct OidcConfig {
 pub struct SourcesConfig {
     pub immich: Option<ServiceUrls>,
     pub opencloud: Option<OpenCloudConfig>,
+    pub solstice: Option<SolsticeConfig>,
 }
 
 #[derive(Debug, Clone)]
@@ -82,6 +83,14 @@ pub struct OpenCloudConfig {
     /// `ATLAS_OPENCLOUD_STORAGE_ID`: the first id in any OpenCloud permalink
     /// (`/f/<this>$...`). With it, links go straight to files.
     pub storage_id: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SolsticeConfig {
+    /// `ATLAS_SOLSTICE_NOTES_DIR`: Solstice Sync's vaults as plain files,
+    /// mounted read-only (`/data/notes`). Each user's root is
+    /// `<dir>/<username>`, holding one folder per vault.
+    pub notes_dir: PathBuf,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -186,6 +195,9 @@ impl Config {
                     storage_id: env.get("ATLAS_OPENCLOUD_STORAGE_ID"),
                 }),
             },
+            solstice: env
+                .get("ATLAS_SOLSTICE_NOTES_DIR")
+                .map(|dir| SolsticeConfig { notes_dir: PathBuf::from(dir) }),
         };
 
         Ok(Self {
@@ -307,5 +319,9 @@ mod tests {
         ])
         .unwrap();
         assert_eq!(c.sources.opencloud.unwrap().urls.public.as_str(), "https://opencloud.example/");
+
+        assert!(c.sources.solstice.is_none());
+        let c = from(&[("ATLAS_SOLSTICE_NOTES_DIR", "/data/notes")]).unwrap();
+        assert_eq!(c.sources.solstice.unwrap().notes_dir, PathBuf::from("/data/notes"));
     }
 }

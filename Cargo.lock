@@ -155,6 +155,7 @@ dependencies = [
  "atlas-index",
  "atlas-source-immich",
  "atlas-source-opencloud",
+ "atlas-source-solstice",
  "atlas-state",
  "axum",
  "base64 0.22.1",
@@ -209,6 +210,20 @@ dependencies = [
  "tracing",
  "url",
  "xattr",
+]
+
+[[package]]
+name = "atlas-source-solstice"
+version = "0.1.3"
+dependencies = [
+ "async-trait",
+ "atlas-core",
+ "atlas-fs",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "url",
 ]
 
 [[package]]

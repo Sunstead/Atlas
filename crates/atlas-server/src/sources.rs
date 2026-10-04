@@ -6,12 +6,14 @@ use atlas_common::{CredentialInfo, SourceKindInfo};
 use atlas_core::{Source, SourceError};
 use atlas_source_immich::ImmichSource;
 use atlas_source_opencloud::OpenCloudSource;
+use atlas_source_solstice::SolsticeSource;
 use atlas_state::{ConnectionRow, Db, MasterKey};
 use std::path::PathBuf;
 use std::sync::Arc;
 
 pub const OPENCLOUD: &str = "opencloud";
 pub const IMMICH: &str = "immich";
+pub const SOLSTICE: &str = "solstice";
 
 pub fn kinds(cfg: &SourcesConfig) -> Vec<SourceKindInfo> {
     vec![
@@ -45,6 +47,17 @@ pub fn kinds(cfg: &SourcesConfig) -> Vec<SourceKindInfo> {
             enabled: cfg.immich.is_some(),
             disabled_reason: cfg.immich.is_none().then(|| "Not configured on this server (ATLAS_IMMICH_URL).".into()),
         },
+        SourceKindInfo {
+            kind: SOLSTICE.into(),
+            name: "Solstice".into(),
+            description: "Your notes, from the vaults you sync with Solstice. Indexed from the server's disk.".into(),
+            credential: None,
+            enabled: cfg.solstice.is_some(),
+            disabled_reason: cfg
+                .solstice
+                .is_none()
+                .then(|| "Not configured on this server (ATLAS_SOLSTICE_NOTES_DIR).".into()),
+        },
     ]
 }
 
@@ -54,7 +67,7 @@ pub fn kind(cfg: &SourcesConfig, kind: &str) -> Option<SourceKindInfo> {
 
 /// Whether Atlas keeps this kind in its own index (and so syncs it).
 pub fn is_indexed(kind: &str) -> bool {
-    kind == OPENCLOUD
+    matches!(kind, OPENCLOUD | SOLSTICE)
 }
 
 /// The adapter for a connection. Credentials are opened here, only for as
@@ -96,6 +109,16 @@ pub fn build(cfg: &SourcesConfig, db: &Db, key: Option<&MasterKey>, row: &Connec
                 .ok_or_else(|| SourceError::Config("Add an Immich API key to search your photos".into()))?;
             let secret = String::from_utf8(secret).map_err(|_| SourceError::Config("The saved API key is damaged. Save it again.".into()))?;
             Ok(Arc::new(ImmichSource::new(immich.api.as_str(), immich.public.as_str(), &secret)?))
+        }
+        SOLSTICE => {
+            let sol = cfg.solstice.as_ref().ok_or_else(|| SourceError::Config("Solstice isn't configured on this server".into()))?;
+            let root = row
+                .config
+                .get("root")
+                .and_then(|r| r.as_str())
+                .map(PathBuf::from)
+                .ok_or_else(|| SourceError::Config("This connection has no folder; disconnect and connect again".into()))?;
+            Ok(Arc::new(SolsticeSource::new(&sol.notes_dir, &root)?))
         }
         other => Err(SourceError::Config(format!("Unknown source kind {other:?}"))),
     }

@@ -105,6 +105,7 @@ fn offers(kind: &str, wanted: Option<&str>) -> bool {
     match kind {
         sources::OPENCLOUD => w == "file",
         sources::IMMICH => matches!(w, "photo" | "video" | "album"),
+        sources::SOLSTICE => matches!(w, "note" | "file"),
         _ => true,
     }
 }
@@ -248,7 +249,7 @@ pub async fn search(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{AuthMode, OpenCloudConfig, ServiceUrls, SourcesConfig};
+    use crate::config::{AuthMode, OpenCloudConfig, ServiceUrls, SolsticeConfig, SourcesConfig};
     use crate::state::tests::state;
     use axum::{
         body::Body,
@@ -268,7 +269,8 @@ mod tests {
         cookie: String,
     }
 
-    /// Two users' OpenCloud spaces on disk; signed in (dev mode) as pwb.
+    /// Two users' OpenCloud spaces and Solstice vaults on disk; signed in
+    /// (dev mode) as pwb.
     async fn world() -> World {
         world_with(None).await
     }
@@ -282,10 +284,23 @@ mod tests {
         std::fs::write(users.join("pwb/page.html"), "<script>alert(1)</script>").unwrap();
         std::fs::create_dir_all(users.join("kim")).unwrap();
         std::fs::write(users.join("kim/diary.txt"), "kim's refund secret").unwrap();
+        let notes = dir.path().join("notes");
+        std::fs::create_dir_all(notes.join("pwb/Notes/work")).unwrap();
+        std::fs::write(notes.join("pwb/Notes/work/Quarterly review.md"), "# Q3
+
+The quarterly numbers look good.").unwrap();
+        std::fs::create_dir_all(notes.join("pwb/Notes/.solstice")).unwrap();
+        std::fs::write(notes.join("pwb/Notes/.solstice/cache.md"), "quarterly cache").unwrap();
+        std::fs::create_dir_all(notes.join("kim/Journal")).unwrap();
+        std::fs::write(notes.join("kim/Journal/today.md"), "kim's quarterly secret").unwrap();
 
         let urls = ServiceUrls { api: Url::parse("http://opencloud:9200").unwrap(), public: Url::parse("https://oc.example").unwrap() };
         let immich = immich.map(|u| ServiceUrls { api: Url::parse(u).unwrap(), public: Url::parse("https://immich.example").unwrap() });
-        let sources = SourcesConfig { immich, opencloud: Some(OpenCloudConfig { urls, users_dir: users.clone(), storage_id: None }) };
+        let sources = SourcesConfig {
+            immich,
+            opencloud: Some(OpenCloudConfig { urls, users_dir: users.clone(), storage_id: None }),
+            solstice: Some(SolsticeConfig { notes_dir: notes }),
+        };
         let state = state(AuthMode::Dev { username: "pwb".into() }, sources);
         state.indexer.start();
         let app = crate::app(state.clone(), None);
@@ -443,6 +458,35 @@ mod tests {
         assert_eq!(w.state.indexer.index.count(id).unwrap(), 0);
     }
 
+    #[tokio::test(flavor = "multi_thread")]
+    async fn notes_are_searched_and_open_in_solstice() {
+        let w = world().await;
+        w.call("POST", "/v1/connections", Some(r#"{"kind":"opencloud"}"#)).await;
+        let (status, _, _) = w.call("POST", "/v1/connections", Some(r#"{"kind":"solstice"}"#)).await;
+        assert_eq!(status, StatusCode::CREATED);
+
+        // pwb's note only: not the sync server's cache, not kim's journal.
+        let r = w.hits("quarterly", 1).await;
+        let hit = &r["hits"][0];
+        assert_eq!(hit["kind"], "note");
+        assert_eq!(hit["title"], "Quarterly review");
+        assert_eq!(hit["path"], "Notes/work");
+        assert_eq!(hit["url"], "solstice://open?vault=Notes&path=work%2FQuarterly%20review.md");
+        assert!(!r.to_string().contains("kim"));
+
+        let conn = hit["item"]["connection"].as_i64().unwrap();
+        let id = hit["item"]["id"].as_str().unwrap();
+        let preview = w.json(&format!("/v1/items/{conn}/{id}/preview")).await;
+        assert_eq!(preview["type"], "markdown");
+
+        // type=note leaves files out, and files leave notes out.
+        w.hits("refund", 1).await;
+        let r = w.json("/v1/search?q=quarterly&type=note").await;
+        assert_eq!(r["hits"].as_array().unwrap().len(), 1);
+        let r = w.json("/v1/search?q=refund&type=note").await;
+        assert!(r["hits"].as_array().unwrap().is_empty(), "{r}");
+    }
+
     fn cand(conn: i64, title: &str) -> Candidate {
         Candidate {
             connection: conn,
@@ -561,6 +605,7 @@ mod tests {
         assert!(offers("opencloud", Some("file")) && !offers("opencloud", Some("photo")));
         assert!(offers("immich", Some("album")) && !offers("immich", Some("file")));
         assert!(offers("immich", None));
+        assert!(offers("solstice", Some("note")) && !offers("solstice", Some("photo")));
     }
 
     #[test]

@@ -8,6 +8,7 @@ members = [
     "crates/atlas-server",
     "crates/sources/atlas-source-opencloud",
     "crates/sources/atlas-source-immich",
+    "crates/sources/atlas-source-solstice",
 ]
 resolver = "2"
 
