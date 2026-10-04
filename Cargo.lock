@@ -99,7 +99,7 @@ dependencies = [
 
 [[package]]
 name = "atlas-common"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "serde",
  "serde_json",
@@ -108,7 +108,7 @@ dependencies = [
 
 [[package]]
 name = "atlas-core"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "serde",
@@ -119,7 +119,7 @@ dependencies = [
 
 [[package]]
 name = "atlas-fs"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "ignore",
  "mime_guess",
@@ -135,7 +135,7 @@ dependencies = [
 
 [[package]]
 name = "atlas-index"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "atlas-core",
  "rusqlite",
@@ -147,7 +147,7 @@ dependencies = [
 
 [[package]]
 name = "atlas-server"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "atlas-common",
  "atlas-core",
@@ -180,7 +180,7 @@ dependencies = [
 
 [[package]]
 name = "atlas-source-immich"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "atlas-core",
@@ -195,7 +195,7 @@ dependencies = [
 
 [[package]]
 name = "atlas-source-opencloud"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "atlas-core",
@@ -214,7 +214,7 @@ dependencies = [
 
 [[package]]
 name = "atlas-source-solstice"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "atlas-core",
@@ -228,7 +228,7 @@ dependencies = [
 
 [[package]]
 name = "atlas-state"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "base64 0.22.1",
  "chacha20poly1305",

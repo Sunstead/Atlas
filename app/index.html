@@ -20,13 +20,20 @@
           'event-horizon': 'dark rounded',
           eclipse: 'dark rounded',
           'deep-field': 'dark rounded',
+          stone: 'dark rounded',
+          ember: 'dark rounded',
+          concrete: 'dark rounded',
+          inferno: 'dark rounded',
+          hologram: 'dark tech',
+          terminal: 'dark tech',
+          'red-alert': 'dark tech',
           'sunstead-light': 'light rounded',
           solar: 'light rounded',
           lunar: 'light rounded',
           comet: 'light rounded',
-          hologram: 'dark tech',
-          terminal: 'dark tech',
-          'red-alert': 'dark tech',
+          orchard: 'light rounded',
+          brutalist: 'light rounded',
+          bubblegum: 'light rounded',
           blueprint: 'light tech',
         };
         var info = function (id) {
@@ -37,8 +44,7 @@
           if (t === 'system') {
             var s = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             t = localStorage.getItem('atlas-theme-' + s);
-            // Follow system pairs rounded themes only.
-            if (!info(t) || info(t)[0] !== s || info(t)[1] !== 'rounded') t = 'sunstead-' + s;
+            if (!info(t) || info(t)[0] !== s) t = 'sunstead-' + s;
           }
           if (!info(t)) t = 'sunstead-dark';
           var root = document.documentElement;

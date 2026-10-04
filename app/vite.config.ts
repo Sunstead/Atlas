@@ -19,7 +19,12 @@ export default defineConfig({
   // @sunstead/ui is source with several entry points. Pre-bundling them one
   // by one gives each its own copy of shared modules (two theme contexts), so
   // serve it as source, like the app's own files.
-  optimizeDeps: { exclude: ['@sunstead/ui'] },
+  optimizeDeps: {
+    exclude: ['@sunstead/ui'],
+    // Base UI, reached only through it, imports this CommonJS shim; it has
+    // to be pre-bundled or the browser can't load it in dev.
+    include: ['use-sync-external-store/shim', 'use-sync-external-store/shim/with-selector'],
+  },
   server: {
     // Fixed, so the future Tauri shell can point at it.
     port: 1420,
