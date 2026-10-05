@@ -2,7 +2,7 @@
   "name": "app",
   "private": true,
   "license": "MIT",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@sunstead/ui": "github:Sunstead/sunstead-ui#v0.3.1",
+    "@sunstead/ui": "github:Sunstead/sunstead-ui#v0.3.2",
     "@tailwindcss/vite": "^4.3.1",
     "@tanstack/react-query": "^5.101.1",
     "@tanstack/react-router": "^1.170.16",
