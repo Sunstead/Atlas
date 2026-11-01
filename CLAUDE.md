@@ -144,6 +144,10 @@ Dependency rules:
 - **Item ids in URLs** are base64url (`api/items.rs`). Blobs are served with
   `CSP: sandbox` (except PDFs) and `nosniff`, so a user's HTML or SVG never
   runs as Atlas.
+- **Icon:** `app/public/icon.svg` is the design (a navy-to-plum tile with one cloud behind the white
+  needle: a magenta-to-cyan sweep along the needle's line, seen through a mask of four soft glows); `npm run icons -w app` makes the favicon, the touch
+  icon, the 192 and 512 PNGs and the web manifest from it (`app/scripts/build-icons.mjs`).
+  Outputs are committed, so re-run it only when the icon changes.
 
 ## Conventions (matching Cosmos)
 
