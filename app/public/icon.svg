@@ -1,0 +1,96 @@
+<svg width="512" height="512" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+ <title>Atlas</title>
+ <defs>
+  <linearGradient id="ground" x1="8" x2="8" y2="16" gradientUnits="userSpaceOnUse">
+   <stop stop-color="#151b4d" offset="0"/>
+   <stop stop-color="#2c003e" offset="1"/>
+  </linearGradient>
+  <!-- One colour field, magenta to cyan along the needle, seen through one cloud: the original's four glows, as a mask. -->
+  <linearGradient id="hue" x1="4" y1="12" x2="12" y2="4" gradientUnits="userSpaceOnUse">
+   <stop offset="0" stop-color="#d84cc0"/>
+   <stop offset=".35" stop-color="#9656d8"/>
+   <stop offset=".6" stop-color="#6f66de"/>
+   <stop offset="1" stop-color="#5cbedd"/>
+  </linearGradient>
+  <radialGradient id="m-magenta" cx="8" cy="8" r="6" gradientTransform="matrix(.91667 0 0 .91667 -1.1333 2.4667)" gradientUnits="userSpaceOnUse">
+   <stop offset="0.000" stop-color="#fff" stop-opacity="0.680"/>
+   <stop offset="0.125" stop-color="#fff" stop-opacity="0.572"/>
+   <stop offset="0.250" stop-color="#fff" stop-opacity="0.468"/>
+   <stop offset="0.375" stop-color="#fff" stop-opacity="0.369"/>
+   <stop offset="0.500" stop-color="#fff" stop-opacity="0.276"/>
+   <stop offset="0.625" stop-color="#fff" stop-opacity="0.190"/>
+   <stop offset="0.750" stop-color="#fff" stop-opacity="0.112"/>
+   <stop offset="0.875" stop-color="#fff" stop-opacity="0.046"/>
+   <stop offset="1.000" stop-color="#fff" stop-opacity="0.000"/>
+  </radialGradient>
+  <radialGradient id="m-cyan" cx="8" cy="8" r="6" gradientTransform="matrix(.91667 0 0 .91667 2.2667 -.8333)" gradientUnits="userSpaceOnUse">
+   <stop offset="0.000" stop-color="#fff" stop-opacity="0.720"/>
+   <stop offset="0.125" stop-color="#fff" stop-opacity="0.606"/>
+   <stop offset="0.250" stop-color="#fff" stop-opacity="0.495"/>
+   <stop offset="0.375" stop-color="#fff" stop-opacity="0.391"/>
+   <stop offset="0.500" stop-color="#fff" stop-opacity="0.293"/>
+   <stop offset="0.625" stop-color="#fff" stop-opacity="0.201"/>
+   <stop offset="0.750" stop-color="#fff" stop-opacity="0.118"/>
+   <stop offset="0.875" stop-color="#fff" stop-opacity="0.048"/>
+   <stop offset="1.000" stop-color="#fff" stop-opacity="0.000"/>
+  </radialGradient>
+  <radialGradient id="m-sweep" cx="8" cy="8" r="6" gradientTransform="matrix(0.42351 -0.4663 0.76598 0.64533 -1.8659 6.2177)" gradientUnits="userSpaceOnUse">
+   <stop offset="0.000" stop-color="#fff" stop-opacity="1.000"/>
+   <stop offset="0.125" stop-color="#fff" stop-opacity="0.852"/>
+   <stop offset="0.250" stop-color="#fff" stop-opacity="0.708"/>
+   <stop offset="0.375" stop-color="#fff" stop-opacity="0.569"/>
+   <stop offset="0.500" stop-color="#fff" stop-opacity="0.435"/>
+   <stop offset="0.625" stop-color="#fff" stop-opacity="0.308"/>
+   <stop offset="0.750" stop-color="#fff" stop-opacity="0.189"/>
+   <stop offset="0.875" stop-color="#fff" stop-opacity="0.082"/>
+   <stop offset="1.000" stop-color="#fff" stop-opacity="0.000"/>
+  </radialGradient>
+  <radialGradient id="m-halo" cx="8" cy="8" r="6" gradientTransform="matrix(.91667 0 0 .91667 .16667 .16667)" gradientUnits="userSpaceOnUse">
+   <stop offset="0.000" stop-color="#fff" stop-opacity="0.800"/>
+   <stop offset="0.125" stop-color="#fff" stop-opacity="0.673"/>
+   <stop offset="0.250" stop-color="#fff" stop-opacity="0.550"/>
+   <stop offset="0.375" stop-color="#fff" stop-opacity="0.434"/>
+   <stop offset="0.500" stop-color="#fff" stop-opacity="0.325"/>
+   <stop offset="0.625" stop-color="#fff" stop-opacity="0.224"/>
+   <stop offset="0.750" stop-color="#fff" stop-opacity="0.132"/>
+   <stop offset="0.875" stop-color="#fff" stop-opacity="0.054"/>
+   <stop offset="1.000" stop-color="#fff" stop-opacity="0.000"/>
+  </radialGradient>
+  <radialGradient id="light" cx="8" cy="8" r="6" gradientTransform="matrix(0.42351 -0.4663 0.76598 0.64533 -1.8659 6.2177)" gradientUnits="userSpaceOnUse">
+   <stop offset="0.000" stop-color="#c9a8ff" stop-opacity="0.510"/>
+   <stop offset="0.125" stop-color="#c19bfc" stop-opacity="0.406"/>
+   <stop offset="0.250" stop-color="#b98ef9" stop-opacity="0.313"/>
+   <stop offset="0.375" stop-color="#b180f6" stop-opacity="0.230"/>
+   <stop offset="0.500" stop-color="#aa73f4" stop-opacity="0.157"/>
+   <stop offset="0.625" stop-color="#a266f1" stop-opacity="0.096"/>
+   <stop offset="0.750" stop-color="#9a58ee" stop-opacity="0.048"/>
+   <stop offset="0.875" stop-color="#924beb" stop-opacity="0.014"/>
+   <stop offset="1.000" stop-color="#8a3ee8" stop-opacity="0.000"/>
+  </radialGradient>
+  <radialGradient id="bloom" cx="8" cy="8" r="6" gradientTransform="matrix(.91667 0 0 .91667 .16667 .16667)" gradientUnits="userSpaceOnUse">
+   <stop offset="0.000" stop-color="#fff" stop-opacity="0.500"/>
+   <stop offset="0.125" stop-color="#fff" stop-opacity="0.393"/>
+   <stop offset="0.250" stop-color="#fff" stop-opacity="0.298"/>
+   <stop offset="0.375" stop-color="#fff" stop-opacity="0.215"/>
+   <stop offset="0.500" stop-color="#fff" stop-opacity="0.144"/>
+   <stop offset="0.625" stop-color="#fff" stop-opacity="0.086"/>
+   <stop offset="0.750" stop-color="#fff" stop-opacity="0.041"/>
+   <stop offset="0.875" stop-color="#fff" stop-opacity="0.012"/>
+   <stop offset="1.000" stop-color="#fff" stop-opacity="0.000"/>
+  </radialGradient>
+  <mask id="cloud" maskUnits="userSpaceOnUse" x="0" y="0" width="16" height="16">
+   <circle cx="6.2" cy="9.8" r="5.5" fill="url(#m-magenta)"/>
+   <circle cx="9.6" cy="6.5" r="5.5" fill="url(#m-cyan)"/>
+   <circle cx="8" cy="8" r="8" fill="url(#m-sweep)"/>
+   <circle cx="7.5" cy="7.5" r="5.5" fill="url(#m-halo)"/>
+  </mask>
+  <clipPath id="tile"><rect width="16" height="16" rx="4"/></clipPath>
+ </defs>
+ <g clip-path="url(#tile)">
+  <rect width="16" height="16" fill="url(#ground)"/>
+  <rect width="16" height="16" fill="url(#hue)" mask="url(#cloud)"/>
+  <circle cx="8" cy="8" r="8" fill="url(#light)"/>
+  <circle cx="7.5" cy="7.5" r="5.5" fill="url(#bloom)"/>
+ </g>
+ <path d="m5.0942 3.7615 6.8116 2.477a0.85058 0.85058 89.091 0 1 0.02522 1.5891l-2.6097 1.0439a0.80749 0.80749 135 0 0-0.44984 0.44984l-1.0439 2.6097a0.85058 0.85058 0.90915 0 1-1.5891-0.025217l-2.477-6.8116a1.0399 1.0399 135 0 1 1.3327-1.3327z" fill="#fff"/>
+</svg>

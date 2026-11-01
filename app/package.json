@@ -8,11 +8,12 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "icons": "node scripts/build-icons.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@sunstead/ui": "github:Sunstead/sunstead-ui#v0.3.2",
+    "@sunstead/ui": "github:Sunstead/sunstead-ui#v0.3.10",
     "@tailwindcss/vite": "^4.3.1",
     "@tanstack/react-query": "^5.101.1",
     "@tanstack/react-router": "^1.170.16",
@@ -25,6 +26,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^26.0.0",
